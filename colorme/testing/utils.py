@@ -41,7 +41,7 @@ class Small3x3x2x3Dataset(Dataset):
         return torch.sum(self.data[item], 0, keepdim=True), self.data[item]
 
 
-class NaiveGenerator(nn.Module):
+class NaiveConvGenerator(nn.Module):
 
     def __init__(self, kernel_size=(1, 1), in_channels=1, out_channels=3):
         super().__init__()
@@ -52,3 +52,16 @@ class NaiveGenerator(nn.Module):
 
     def forward(self, X):
         return self.conv(X)
+
+
+class NaiveMultGenerator(nn.Module):
+
+    # in_channels assumed to be 1
+    def __init__(self, shape, out_channels=3):
+        super().__init__()
+        self.weights = nn.Parameter(torch.randn(out_channels, shape[-1],
+                                                shape[-1]),
+                                    requires_grad=True)
+
+    def forward(self, X):
+        return torch.matmul(X, self.weights)

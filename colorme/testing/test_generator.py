@@ -1,9 +1,12 @@
 from unittest import TestCase
 from unittest import mock
 from colorme.starter import BaselineDCN
-from colorme.testing.utils import RandomImage
+from colorme.testing.utils import (RandomImage, NaiveConvGenerator,
+                                   Small3x3x2x3Dataset, NaiveMultGenerator,
+                                   )
 import numpy.testing as npt
 import torch
+from torch.utils.data import DataLoader
 
 
 class TestBaselineDCN_forward(TestCase):
@@ -41,3 +44,18 @@ class TestBaselineDCN_forward(TestCase):
         bad_arg = 'bad_arg'
         with self.assertRaisesRegex(ValueError, f"Invalid value '{bad_arg}'"):
             gen(X, train=bad_arg)
+
+
+class TestBaselineDCN_fit(TestCase):
+
+    @mock.patch('colorme.starter.BaselineDCN.set_generator')
+    def test_fit(self, mock_set_gen):
+        torch.manual_seed(725)
+        mock_set_gen.return_value = NaiveMultGenerator(shape=(3, 3, 2, 3))
+        dat = Small3x3x2x3Dataset()
+        dl = DataLoader(dat, batch_size=3)
+        gen = BaselineDCN(n_epochs=100, lr=0.1, logdir='logs')
+        losses = gen.fit(dl)
+        # the small demo problem is solvable, assert the network has gotten
+        # virtually 0 error
+        self.assertAlmostEqual(losses[-1], 0, places=4)

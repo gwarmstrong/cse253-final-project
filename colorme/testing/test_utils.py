@@ -1,6 +1,6 @@
 from unittest import TestCase
 from colorme.testing.utils import (RandomImage, Small3x3x2x3Dataset,
-                                   NaiveGenerator
+                                   NaiveConvGenerator, NaiveMultGenerator,
                                    )
 import numpy.testing as npt
 from torch.utils.data import DataLoader
@@ -67,10 +67,20 @@ class TestSmall3x3x2x3Dataset(TestCase):
         self.assertEqual(i, 2)
 
 
-class TestNaiveGenerator(TestCase):
+class TestNaiveConvGenerator(TestCase):
     def test_forward(self):
-        gen = NaiveGenerator()
+        gen = NaiveConvGenerator()
         dataset = Small3x3x2x3Dataset()
+        dl = DataLoader(dataset, batch_size=3, shuffle=False)
+        for gray, color in dl:
+            obs = gen(gray)
+            self.assertTupleEqual(obs.shape, color.shape)
+
+
+class TestNaiveMultGenerator(TestCase):
+    def test_forward(self):
+        dataset = Small3x3x2x3Dataset()
+        gen = NaiveMultGenerator(shape=dataset[0][0].shape)
         dl = DataLoader(dataset, batch_size=3, shuffle=False)
         for gray, color in dl:
             obs = gen(gray)

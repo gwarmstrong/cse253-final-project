@@ -135,13 +135,15 @@ class BaselineDCN(nn.Module):
                 optimizer.step()
 
                 if i % self.summary_interval == 0:
-                    logging.info(f"Epoch: [{epoch}/"
+                    logging.info(f"Epoch: [{epoch + 1}/"
                                  f"{self.n_epochs}]\tIteration: "
-                                 f"[{i}/{len(train_dataloader)}]\tTrain "
+                                 f"[{i + 1}/{len(train_dataloader)}]\tTrain "
                                  f"loss: {loss.item()}"
                                  )
 
             G_losses.append(loss.cpu().item())
+
+        return G_losses
 
         # writer.flush()
         # writer.close()
