@@ -1,6 +1,12 @@
 import torch
 from torch import nn
 import warnings
+import contextlib
+
+
+@contextlib.contextmanager
+def TrivalContext():
+    yield
 
 
 class BaselineDCN(nn.Module):
@@ -37,6 +43,8 @@ class BaselineDCN(nn.Module):
         self.criterion = criterion
         if self.use_gpu:
             # should move the model to GPU if use_gpu is true...
+            # TODO test this on GPU
+            # else, we can do clf = BaselineDCN(); clf = clf.gpu(); clf.fit()
             self.__dict__.update(self.cuda().__dict__)
 
     def set_generator(self):
@@ -54,3 +62,29 @@ class BaselineDCN(nn.Module):
 
         """
         raise NotImplemented()
+
+    def forward(self, X, train='generator'):
+        """
+        Parameters
+        ----------
+        X : torch.Tensor of shape (batch_size, H, W)
+        train : choices ['generator', 'none']
+            indicates which parts of the model be run with gradients
+
+        Returns
+        -------
+        y: torch.tensor of shape (batch_size, H, W, N)
+        Parameters
+
+        """
+        if train == 'generator':
+            ctx = TrivalContext()
+        elif train == 'none':
+            ctx = torch.no_grad()
+        else:
+            raise ValueError(f"Invalid value '{train}' for argument train in "
+                             f"forward.")
+        with ctx:
+            y = self.generator(X)
+
+        return y
