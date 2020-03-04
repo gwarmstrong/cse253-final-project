@@ -3,6 +3,7 @@ from unittest import mock
 from colorme.starter import BaselineDCN
 from colorme.testing.utils import (RandomImage, NaiveConvGenerator,
                                    Small3x3x2x3Dataset, NaiveMultGenerator,
+                                   ColormeTestCase,
                                    )
 import numpy.testing as npt
 import torch
@@ -46,7 +47,9 @@ class TestBaselineDCN_forward(TestCase):
             gen(X, train=bad_arg)
 
 
-class TestBaselineDCN_fit(TestCase):
+class TestBaselineDCN_fit(ColormeTestCase):
+
+    package = 'colorme.testing'
 
     @mock.patch('colorme.starter.BaselineDCN.set_generator')
     def test_fit(self, mock_set_gen):
@@ -54,8 +57,10 @@ class TestBaselineDCN_fit(TestCase):
         mock_set_gen.return_value = NaiveMultGenerator(shape=(3, 3, 2, 3))
         dat = Small3x3x2x3Dataset()
         dl = DataLoader(dat, batch_size=3)
-        gen = BaselineDCN(n_epochs=100, lr=0.1, logdir='logs')
-        losses = gen.fit(dl)
+        val_dl = DataLoader(dat, batch_size=1, shuffle=True)
+        logdir = self.create_data_path('test_logs')
+        gen = BaselineDCN(n_epochs=100, lr=0.1, logdir=logdir)
+        losses = gen.fit(dl, val_dl)
         # the small demo problem is solvable, assert the network has gotten
         # virtually 0 error
         self.assertAlmostEqual(losses[-1], 0, places=4)

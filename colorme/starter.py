@@ -14,9 +14,10 @@ def TrivalContext():
 
 class BaselineDCN(nn.Module):
     def __init__(self, n_epochs: int, lr: float, logdir: str,
-                 summary_interval: int = 100,
+                 summary_interval: int = 10,
                  criterion: nn.Module = None,
                  use_gpu: bool = False,
+                 validation_interval: int = 100,
                  ):
         """
 
@@ -48,6 +49,7 @@ class BaselineDCN(nn.Module):
         self.criterion = criterion
         self.optimizer = Adam
         self.optimzer_kwargs = {'lr': self.lr}
+        self.validation_interval = validation_interval
         if self.use_gpu:
             # should move the model to GPU if use_gpu is true...
             # TODO test this on GPU
@@ -114,12 +116,13 @@ class BaselineDCN(nn.Module):
         -------
 
         """
-        # writer = SummaryWriter(log_dir=self.logdir)
+        writer = SummaryWriter(log_dir=self.logdir)
         logging.info("Starting training loop...")
 
         optimizer = self.optimizer(self.parameters(), **self.optimzer_kwargs)
         G_losses = []
 
+        global_step = 0
         for epoch in range(self.n_epochs):
             for i, (X_gray, X_color) in enumerate(train_dataloader):
                 self.zero_grad()
@@ -128,7 +131,7 @@ class BaselineDCN(nn.Module):
                     X_gray = X_gray.cuda()
                     X_color = X_color.cuda()
 
-                output = self.generator(X_gray)
+                output = self.forward(X_gray)
 
                 loss = self.criterion(output, X_color)
                 loss.backward()
@@ -140,6 +143,27 @@ class BaselineDCN(nn.Module):
                                  f"[{i + 1}/{len(train_dataloader)}]\tTrain "
                                  f"loss: {loss.item()}"
                                  )
+                    writer.add_scalar('i.train_loss', loss.cpu().item(),
+                                      global_step=global_step)
+
+                if (i % self.validation_interval == 0) and (
+                        val_dataloader is not None):
+                    for X_gray, X_color in val_dataloader:
+                        if self.use_gpu:
+                            X_gray = X_gray.cuda()
+                            X_color = X_color.cuda()
+                        output = self.forward(X_gray, train='none')
+                        loss = self.criterion(output, X_color)
+                        logging.info(f"Epoch: [{epoch + 1}/"
+                                     f"{self.n_epochs}]\tIteration: "
+                                     f"[{i + 1}/"
+                                     f"{len(train_dataloader)}]\tValidation "
+                                     f"loss: {loss.item()}"
+                                     )
+                        writer.add_scalar('ii.val_loss', loss.cpu().item(),
+                                          global_step=global_step)
+
+                global_step += 1
 
             G_losses.append(loss.cpu().item())
 
