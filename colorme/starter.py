@@ -141,27 +141,47 @@ class BaselineDCN(nn.Module):
                     logging.info(f"Epoch: [{epoch + 1}/"
                                  f"{self.n_epochs}]\tIteration: "
                                  f"[{i + 1}/{len(train_dataloader)}]\tTrain "
-                                 f"loss: {loss.item()}"
+                                 f"loss: {loss.cpu().item()}"
                                  )
                     writer.add_scalar('i.train_loss', loss.cpu().item(),
                                       global_step=global_step)
 
                 if (i % self.validation_interval == 0) and (
                         val_dataloader is not None):
-                    for X_gray, X_color in val_dataloader:
+                    total_val_loss = 0
+                    total_val_samples = 0
+                    for j, (X_gray, X_color) in enumerate(val_dataloader):
                         if self.use_gpu:
                             X_gray = X_gray.cuda()
                             X_color = X_color.cuda()
                         output = self.forward(X_gray, train='none')
                         loss = self.criterion(output, X_color)
-                        logging.info(f"Epoch: [{epoch + 1}/"
-                                     f"{self.n_epochs}]\tIteration: "
-                                     f"[{i + 1}/"
-                                     f"{len(train_dataloader)}]\tValidation "
-                                     f"loss: {loss.item()}"
-                                     )
-                        writer.add_scalar('ii.val_loss', loss.cpu().item(),
+                        total_val_loss += loss.cpu().item() * len(X_gray)
+                        total_val_samples += len(X_gray)
+                        if j == 0:
+                            keep_gray = X_gray.cpu()
+                            keep_color = X_color.cpu()
+                            keep_colorized = output.cpu()
+
+                    # TODO the colorized may have to be inverse transformed ?
+                    writer.add_images('a.val_colorized', keep_colorized,
+                                      global_step=global_step)
+                    # TODO I guess if we're not shuffling we don't really
+                    #  need to save more than once... may want to avoid the
+                    #  'if' if we are going to shuffl val but I see no reason
+                    if global_step == 0:
+                        writer.add_images('b.val_grayscale_input', keep_gray,
                                           global_step=global_step)
+                        writer.add_images('c.val_color_label', keep_color,
+                                          global_step=global_step)
+                    avg_val_loss = total_val_loss / total_val_samples
+                    logging.info(f"Epoch: [{epoch + 1}/"
+                                 f"{self.n_epochs}]\tIteration: "
+                                 f"[all]\tValidation "
+                                 f"loss: {avg_val_loss}"
+                                 )
+                    writer.add_scalar('ii.val_loss', avg_val_loss,
+                                      global_step=global_step)
 
                 global_step += 1
 
