@@ -12,7 +12,7 @@ class TestBaselineDCN_forward(TestCase):
         image_generator = RandomImage(5, 32, 32)
         X = image_generator()
         mock_set_gen.return_value = RandomImage(5, 32, 32, 3, mode='zeros')
-        gen = BaselineDCN(n_epochs=10, learning_rate=0.001, logdir='logs')
+        gen = BaselineDCN(n_epochs=10, lr=0.001, logdir='logs')
         pred = gen(X)
         exp = torch.zeros(5, 32, 32, 3)
         # assertion depends on forward call just giving generator output
@@ -23,7 +23,7 @@ class TestBaselineDCN_forward(TestCase):
         image_generator = RandomImage(5, 32, 32)
         X = image_generator()
         mock_set_gen.return_value = RandomImage(5, 32, 32, 3, mode='zeros')
-        gen = BaselineDCN(n_epochs=10, learning_rate=0.001, logdir='logs')
+        gen = BaselineDCN(n_epochs=10, lr=0.001, logdir='logs')
         with mock.patch.object(torch, 'no_grad') as mock_no_grad:
             pred = gen(X, train='none')
             mock_no_grad.assert_called_once()
@@ -37,7 +37,7 @@ class TestBaselineDCN_forward(TestCase):
         image_generator = RandomImage(5, 32, 32)
         X = image_generator()
         mock_set_gen.return_value = RandomImage(5, 32, 32, 3, mode='zeros')
-        gen = BaselineDCN(n_epochs=10, learning_rate=0.001, logdir='logs')
+        gen = BaselineDCN(n_epochs=10, lr=0.001, logdir='logs')
         bad_arg = 'bad_arg'
         with self.assertRaisesRegex(ValueError, f"Invalid value '{bad_arg}'"):
             gen(X, train=bad_arg)
