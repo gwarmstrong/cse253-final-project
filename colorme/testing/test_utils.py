@@ -1,6 +1,9 @@
 from unittest import TestCase
-from colorme.testing.utils import RandomImage
+from colorme.testing.utils import (RandomImage, Small3x3x2x3Dataset,
+                                   NaiveGenerator
+                                   )
 import numpy.testing as npt
+from torch.utils.data import DataLoader
 import torch
 
 
@@ -18,3 +21,57 @@ class TestRandomImage(TestCase):
         obs = ri()
         exp = torch.ones(3, 5)
         npt.assert_array_equal(obs, exp)
+
+
+class TestSmall3x3x2x3Dataset(TestCase):
+
+    def test_get_item(self):
+        dataset = Small3x3x2x3Dataset()
+
+        sum0, item0 = dataset[0]
+        exp0 = torch.zeros(3, 2, 3)
+        exp0[0, :, 0] = 1
+        npt.assert_array_equal(item0, exp0)
+        npt.assert_array_equal(sum0, torch.sum(exp0, 0, keepdim=True))
+
+        sum1, item1 = dataset[1]
+        exp1 = torch.zeros(3, 2, 3)
+        exp1[1, :, 1] = 1
+        npt.assert_array_equal(item1, exp1)
+        npt.assert_array_equal(sum1, torch.sum(exp1, 0, keepdim=True))
+
+        sum2, item2 = dataset[2]
+        exp2 = torch.zeros(3, 2, 3)
+        exp2[2, :, 2] = 1
+        npt.assert_array_equal(item2, exp2)
+        npt.assert_array_equal(sum2, torch.sum(exp2, 0, keepdim=True))
+
+    def test_dataloader_on_set(self):
+        dataset = Small3x3x2x3Dataset()
+        dl = DataLoader(dataset, batch_size=1, shuffle=False)
+        exp0 = torch.zeros(1, 3, 2, 3)
+        exp0[:, 0, :, 0] = 1
+        exp1 = torch.zeros(1, 3, 2, 3)
+        exp1[:, 1, :, 1] = 1
+        exp2 = torch.zeros(1, 3, 2, 3)
+        exp2[:, 2, :, 2] = 1
+        exps = [exp0, exp1, exp2]
+        for i, (gray, color) in enumerate(dl):
+            # this_exp = torch.unsqueeze(exps[i], 0)
+            this_exp = exps[i]
+            # image has the expected RGB
+            npt.assert_array_equal(this_exp, color)
+            # each image has the correct shape
+            self.assertTupleEqual((1, 1, 2, 3), gray.shape)
+        # dataloader gives 3 batches
+        self.assertEqual(i, 2)
+
+
+class TestNaiveGenerator(TestCase):
+    def test_forward(self):
+        gen = NaiveGenerator()
+        dataset = Small3x3x2x3Dataset()
+        dl = DataLoader(dataset, batch_size=3, shuffle=False)
+        for gray, color in dl:
+            obs = gen(gray)
+            self.assertTupleEqual(obs.shape, color.shape)
