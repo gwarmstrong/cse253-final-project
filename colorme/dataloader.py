@@ -93,3 +93,12 @@ class ImageDataset():
         """
         
         return len(self.data)
+
+
+if __name__ == "__main__":
+    train_csv = 'dan_images.csv'
+    transform = [transforms.RandomCrop(64),
+                 transforms.RandomHorizontalFlip()]
+    dataset = ImageDataset(train_csv, n_samples=5, random_seed=13,
+                           transform=transform)
+    print(dataset[0])
