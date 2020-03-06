@@ -200,7 +200,8 @@ class BaselineDCN(nn.Module):
 
             G_losses.append(loss.cpu().item())
 
+        writer.flush()
+        writer.close()
+
         return G_losses
 
-        # writer.flush()
-        # writer.close()
