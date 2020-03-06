@@ -2,6 +2,8 @@
 # coding: utf-8
 
 # In[1]:
+import sys
+print(sys.path)
 import shutil
 import time
 
@@ -29,6 +31,32 @@ use_gpu = torch.cuda.is_available()
 
 IMG_MEANS = np.array([103.939, 116.779, 123.68]) / 255.
 GRAYSCALE_MEANS = np.array([.5])
+
+
+def cuda_enumerate(loader):
+    for iter, (X, Y) in loader:
+        if use_gpu:
+            X = X.cuda()
+            Y = Y.cuda()
+        yield iter, (X, Y)
+
+
+def load_loaders():
+    train_loader = DataLoader(dataset=DanDataset("dan_images.csv"),
+                              batch_size=1,
+                              num_workers=4,
+                              shuffle=False)
+    gan_loader = DataLoader(dataset=DanDataset("dan_images.csv",
+                                               use_generator=True),
+                              batch_size=1,
+                              num_workers=4,
+                              shuffle=False)
+
+    if use_gpu:
+        train_loader = train_loader.cuda()
+        gan_loader = gan_loader.cuda()
+
+    return train_loader, gan_loader
 
 
 def concat_generators(a, b):
@@ -113,19 +141,14 @@ def to_grayscale(pil_img):
 def train(discriminator, generator, optimizer, criterion, train_loader, use_gpu,
           epochs=100, total_iter=0, epoch_start=0):
     for epoch in range(epoch_start, epochs):
-        for iter, (X, Y) in enumerate(train_loader):
+        for iter, (X, Y) in cuda_enumerate(train_loader):
             # Zero EVERYTHING
             discriminator.zero_grad()
             if generator is not None:
                 generator.zero_grad()
             optimizer.zero_grad()
 
-            if use_gpu:
-                inputs = X.cuda()  # Move your inputs onto the gpu
-                labels = Y.cuda()  # Move your labels onto the gpu
-                criterion.cuda()
-            else:
-                inputs, labels = (X, Y)  # Unpack variables into inputs and labels
+            inputs, labels = (X, Y)  # Unpack variables into inputs and labels
 
             if generator is not None:
                 inputs = generator(inputs)
@@ -145,15 +168,10 @@ def train(discriminator, generator, optimizer, criterion, train_loader, use_gpu,
 
 
 def debug_dat_model(discriminator, generator, img_loader):
-    for iter, (X, Y) in enumerate(img_loader):
-        if use_gpu:
-            inputs = X.cuda()  # Move your inputs onto the gpu
-        else:
-            inputs, labels = (X, Y)  # Unpack variables into inputs and labels
-
+    for iter, (X, Y) in cuda_enumerate(img_loader):
         if generator is not None:
-            inputs = generator(inputs)
-        outputs = discriminator(inputs)
+            X = generator(X)
+        outputs = discriminator(X)
         print("My Output Is: ", outputs)
 
 
@@ -168,21 +186,16 @@ def main_train():
     updateable_params = filter(lambda p: p.requires_grad,
                                generator.parameters())
     generator_optimizer = optim.Adam(updateable_params, lr=learning_rate)
+    criterion = BCELoss().cuda()
 
     if use_gpu:
         discriminator = discriminator.cuda()
         generator = generator.cuda()
-    criterion = BCELoss()
+        criterion = criterion.cuda()
+        discriminator_optimizer = discriminator_optimizer.cuda()
+        generator_optimizer = generator_optimizer.cuda()
 
-    gan_loader = DataLoader(dataset=DanDataset("dan_images.csv",
-                                               use_generator=True),
-                            batch_size=2,
-                            num_workers=4,
-                            shuffle=True)
-    train_loader = DataLoader(dataset=DanDataset("dan_images.csv"),
-                              batch_size=2,
-                              num_workers=4,
-                              shuffle=True)
+    train_loader, gan_loader = load_loaders()
 
     for i in range(1, 10):
         print(f"GAN EPOCH: {i}")
@@ -214,15 +227,7 @@ def main_train():
 
 
 def score_it(discriminator, generator):
-    train_loader = DataLoader(dataset=DanDataset("dan_images.csv"),
-                              batch_size=1,
-                              num_workers=4,
-                              shuffle=False)
-    gan_loader = DataLoader(dataset=DanDataset("dan_images.csv",
-                                               use_generator=True),
-                              batch_size=1,
-                              num_workers=4,
-                              shuffle=False)
+    train_loader, gan_loader = load_loaders()
 
     rgb_images = enumerate(train_loader)
     gray_images = enumerate(gan_loader)
@@ -243,15 +248,7 @@ def score_it(discriminator, generator):
     return np.mean(np.array(real)), np.mean(np.array(fake))
 
 def main_show(discriminator, generator):
-    train_loader = DataLoader(dataset=DanDataset("dan_images.csv"),
-                              batch_size=1,
-                              num_workers=4,
-                              shuffle=False)
-    gan_loader = DataLoader(dataset=DanDataset("dan_images.csv",
-                                               use_generator=True),
-                              batch_size=1,
-                              num_workers=4,
-                              shuffle=False)
+    train_loader, gan_loader = load_loaders()
 
     rgb_images = enumerate(train_loader)
     gray_images = enumerate(gan_loader)
