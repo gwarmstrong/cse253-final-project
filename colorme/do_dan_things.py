@@ -192,8 +192,6 @@ def main_train():
         discriminator = discriminator.cuda()
         generator = generator.cuda()
         criterion = criterion.cuda()
-        discriminator_optimizer = discriminator_optimizer.cuda()
-        generator_optimizer = generator_optimizer.cuda()
 
     train_loader, gan_loader = load_loaders()
 
@@ -273,6 +271,6 @@ def main_show(discriminator, generator):
 
 
 if __name__ == "__main__":
-    # main_train()
-    main_show(discriminator=torch.load("./pickles/discriminator-20-51-18.p"),
-              generator=torch.load("./pickles/generator-20-51-18.p"))
+    main_train()
+    # main_show(discriminator=torch.load("./pickles/discriminator-20-51-18.p"),
+    #           generator=torch.load("./pickles/generator-20-51-18.p"))
