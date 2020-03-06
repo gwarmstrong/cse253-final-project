@@ -52,10 +52,6 @@ def load_loaders():
                               num_workers=4,
                               shuffle=False)
 
-    if use_gpu:
-        train_loader = train_loader.cuda()
-        gan_loader = gan_loader.cuda()
-
     return train_loader, gan_loader
 
 
