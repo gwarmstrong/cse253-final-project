@@ -30,7 +30,7 @@ import torch
 
 
 def tanh_onto_0_to_1(x):
-    return torch.multiply(0.5, torch.add(x, 1))
+    return torch.mul(0.5, torch.add(x, 1))
 
 def sigmoid_onto_0_to_1(x):
     return x
@@ -109,7 +109,8 @@ class FCNGenerator(nn.Module):
         
         self.final_layer = nn.ConvTranspose2d(2 * output_channels_order[-1][1], 3, kernel_size= 4, stride = 2, padding = 1)
         self.final_activation = nn.Tanh()
-        self.activation_onto_0_to_1 = activations_onto_0_to_1[self.final_activation]
+        self.activation_onto_0_to_1 = activations_onto_0_to_1[
+            self.final_activation.__class__]
         
     def forward(self, x):
         # print("Why go forward when you could go sideways?")
