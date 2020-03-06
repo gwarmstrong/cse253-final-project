@@ -1,6 +1,6 @@
 from unittest import TestCase
 from unittest import mock
-from colorme.starter import BaselineDCN, default_generator
+from colorme.models import BaselineDCN, default_generator
 from colorme.generator import FCNGenerator
 from colorme.testing.utils import (RandomImage, NaiveConvGenerator,
                                    Small3x3x2x3Dataset, NaiveMultGenerator,
@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 
 
 class TestBaselineDCN_forward(TestCase):
-    @mock.patch('colorme.starter.BaselineDCN.set_generator')
+    @mock.patch('colorme.models.BaselineDCN.set_generator')
     def test_forward(self, mock_set_gen):
         image_generator = RandomImage(5, 32, 32)
         X = image_generator()
@@ -24,7 +24,7 @@ class TestBaselineDCN_forward(TestCase):
         # assertion depends on forward call just giving generator output
         npt.assert_array_equal(pred, exp)
 
-    @mock.patch('colorme.starter.BaselineDCN.set_generator')
+    @mock.patch('colorme.models.BaselineDCN.set_generator')
     def test_forward_no_grad(self, mock_set_gen):
         image_generator = RandomImage(5, 32, 32)
         X = image_generator()
@@ -38,7 +38,7 @@ class TestBaselineDCN_forward(TestCase):
         # assertion depends on forward call just giving generator output
         npt.assert_array_equal(pred, exp)
 
-    @mock.patch('colorme.starter.BaselineDCN.set_generator')
+    @mock.patch('colorme.models.BaselineDCN.set_generator')
     def test_forward_error(self, mock_set_gen):
         image_generator = RandomImage(5, 32, 32)
         X = image_generator()
@@ -63,7 +63,7 @@ class TestBaselineDCN_fit(ColormeTestCase):
 
     package = 'colorme.testing'
 
-    @mock.patch('colorme.starter.BaselineDCN.set_generator')
+    @mock.patch('colorme.models.BaselineDCN.set_generator')
     def test_fit(self, mock_set_gen):
         torch.manual_seed(725)
         mock_set_gen.return_value = NaiveMultGenerator(shape=(3, 3, 2, 3))

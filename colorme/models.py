@@ -9,6 +9,7 @@ from colorme.generator import FCNGenerator
 
 default_generator = FCNGenerator
 
+
 @contextlib.contextmanager
 def TrivalContext():
     yield
@@ -204,4 +205,3 @@ class BaselineDCN(nn.Module):
         writer.close()
 
         return G_losses
-
