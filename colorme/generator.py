@@ -38,8 +38,8 @@ class FCNGenerator(nn.Module):
             print("Yo dumbass, learn to feed in a square image!")
         if inputDimensions[2]%2 != 0:
             print("Do you understand how this works??? Feed in a square image that has h,w dimensions that are powers of 2")
-        numLayers = -2
-        currentDim = inputDimensions[1]
+        numLayers = -1
+        currentDim = inputDimensions[3]
         while currentDim != 1:
             numLayers +=1
             currentDim = currentDim/2
