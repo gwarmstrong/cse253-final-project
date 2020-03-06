@@ -223,20 +223,15 @@ def main_train():
 def score_it(discriminator, generator):
     train_loader, gan_loader = load_loaders()
 
-    rgb_images = enumerate(train_loader)
-    gray_images = enumerate(gan_loader)
-
     real = []
-    fake = []
-    for checkit in range(5):
-        iter, (rgbX, __) = next(rgb_images)
-        iter, (grayX, __) = next(gray_images)
-
-        generatedX = generator(grayX)
+    for iter, (rgbX, Y) in cuda_enumerate(train_loader):
         rawY = discriminator(rgbX).item()
-        generatedY = discriminator(generatedX).item()
-
         real.append(rawY)
+
+    fake = []
+    for iter, (grayX, Y) in cuda_enumerate(gan_loader):
+        generatedX = generator(grayX)
+        generatedY = discriminator(generatedX).item()
         fake.append(generatedY)
 
     return np.mean(np.array(real)), np.mean(np.array(fake))
