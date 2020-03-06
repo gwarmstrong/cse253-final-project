@@ -45,6 +45,20 @@ class Small3x3x2x3Dataset(Dataset):
         return torch.sum(self.data[item], 0, keepdim=True), self.data[item]
 
 
+class CustomSizeRandomDataset(Dataset):
+
+    def __init__(self, images_size=(3, 3, 2, 3)):
+        # represents 3, 2 x 3 RGB images
+        self.data = torch.randn(*images_size)
+        # set first column of first image in red channel to ones
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, item):
+        return torch.sum(self.data[item], 0, keepdim=True), self.data[item]
+
+
 class NaiveConvGenerator(nn.Module):
 
     def __init__(self, kernel_size=(1, 1), in_channels=1, out_channels=3):

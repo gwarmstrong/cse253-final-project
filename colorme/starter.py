@@ -5,7 +5,9 @@ import warnings
 import logging
 from torch.utils.tensorboard import SummaryWriter
 import contextlib
+from colorme.generator import FCNGenerator
 
+default_generator = FCNGenerator
 
 @contextlib.contextmanager
 def TrivalContext():
@@ -18,6 +20,8 @@ class BaselineDCN(nn.Module):
                  criterion: nn.Module = None,
                  use_gpu: bool = False,
                  validation_interval: int = 100,
+                 generator: nn.Module = None,
+                 generator_kwargs: dict = None,
                  ):
         """
 
@@ -43,7 +47,10 @@ class BaselineDCN(nn.Module):
         self.logdir = logdir
         self.use_gpu = use_gpu
         self.summary_interval = summary_interval
-        self.generator = self.set_generator()
+        if generator_kwargs is None:
+            generator_kwargs = dict()
+        self.generator_kwargs = generator_kwargs
+        self.generator = self.set_generator(generator, generator_kwargs)
         if criterion is None:
             criterion = nn.MSELoss()
         self.criterion = criterion
@@ -56,7 +63,8 @@ class BaselineDCN(nn.Module):
             # else, we can do clf = BaselineDCN(); clf = clf.cuda(); clf.fit()
             self.__dict__.update(self.cuda().__dict__)
 
-    def set_generator(self):
+    @staticmethod
+    def set_generator(generator=None, generator_kwargs=None):
         """
         Return a network that can be used in the following way:
         gen = BaselineDCN().set_generator()
@@ -70,7 +78,12 @@ class BaselineDCN(nn.Module):
             a module that takes grayscale images and generates colored ones
 
         """
-        raise NotImplemented()
+        if generator_kwargs is None:
+            generator_kwargs = dict()
+        if generator is None:
+            return default_generator(**generator_kwargs)
+        else:
+            return generator(**generator_kwargs)
 
     def forward(self, X, train='generator'):
         """

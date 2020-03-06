@@ -1,6 +1,7 @@
 from unittest import TestCase
 from colorme.testing.utils import (RandomImage, Small3x3x2x3Dataset,
                                    NaiveConvGenerator, NaiveMultGenerator,
+                                   CustomSizeRandomDataset,
                                    )
 import numpy.testing as npt
 from torch.utils.data import DataLoader
@@ -21,6 +22,15 @@ class TestRandomImage(TestCase):
         obs = ri()
         exp = torch.ones(3, 5)
         npt.assert_array_equal(obs, exp)
+
+
+class TestCustomSizeRandomDataset(TestCase):
+
+    def test_methods(self):
+        dataset = CustomSizeRandomDataset((3, 2, 20, 4))
+        self.assertTupleEqual(dataset[0][0].shape, (1, 20, 4))
+        self.assertTupleEqual(dataset[0][1].shape, (2, 20, 4))
+        self.assertEqual(len(dataset), 3)
 
 
 class TestSmall3x3x2x3Dataset(TestCase):
