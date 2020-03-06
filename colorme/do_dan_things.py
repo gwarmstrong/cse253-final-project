@@ -15,7 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torch
 import os
 from torch.optim import Adam
-from colorme.Bane import DoYouNetFeelInCharge as Generator
+from colorme.generator import FCNGenerator as Generator
 
 
 from colorme.discriminator import PatchGANDiscriminator
