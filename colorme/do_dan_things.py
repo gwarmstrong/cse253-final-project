@@ -13,6 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torch
 import os
 from torch.optim import Adam
+from colorme.Bane import DoYouNetFeelInCharge as Generator
 
 
 from colorme.discriminator import PatchGANDiscriminator
@@ -24,28 +25,48 @@ from PIL import Image
 import torch
 import pandas as pd
 
+use_gpu = torch.cuda.is_available()
+
+IMG_MEANS = np.array([103.939, 116.779, 123.68]) / 255.
+GRAYSCALE_MEANS = np.array([.5])
+
 
 def concat_generators(a, b):
     yield from a
     yield from b
 
 
+def recreate_img(X, grayscale=False):
+
+    X = X.cpu().data.numpy()
+    if grayscale:
+        X[0] += GRAYSCALE_MEANS[0].item()
+        X = np.transpose(X, (0, 2, 3, 1))
+    else:
+        X[:, 2] += IMG_MEANS[2].item()
+        X[:, 1] += IMG_MEANS[1].item()
+        X[:, 0] += IMG_MEANS[0].item()
+        X = np.transpose(X, (0, 2, 3, 1))
+        X = X[:, :, :, ::-1]  # switch back to RGB
+
+    X = X[0]
+    if grayscale:
+        X = np.concatenate([X,X,X], axis=2)
+    X = X * 255.
+    X = X.astype(np.uint8)
+    return Image.fromarray(X)
+
 class FakeDanGenerator(nn.Module):
     def __init__(self):
         super().__init__()
 
     def forward(self, x):
-        # print("BEGIN FAKE GENERATION!")
-        # print(x.shape)
         output = torch.cat((x, x, x), 1)
-        # print(x.shape)
         return output
 
 
 class DanDataset(Dataset):
     # Uhhhhh... I mean this is close but its not really batchnorm :D
-    means = np.array([103.939, 116.779, 123.68]) / 255.
-    grayscale_means = np.array([.5])
 
     def __init__(self, csv_file, use_generator=False):
         self.data = pd.read_csv(csv_file)
@@ -63,16 +84,16 @@ class DanDataset(Dataset):
             img = np.asarray(img)
             # reduce mean
             img = img / 255.
-            img[0] -= self.grayscale_means[0]
+            img -= GRAYSCALE_MEANS[0]
             img = np.stack([img], axis=0)
         else:
             img = np.asarray(img)
             # reduce mean
             img = img[:, :, ::-1]
             img = np.transpose(img, (2, 0, 1)) / 255.
-            img[0] -= self.means[0]
-            img[1] -= self.means[1]
-            img[2] -= self.means[2]
+            img[0] -= IMG_MEANS[0]
+            img[1] -= IMG_MEANS[1]
+            img[2] -= IMG_MEANS[2]
 
         # convert to tensor
         img = torch.from_numpy(img.copy()).float()
@@ -85,13 +106,18 @@ class DanDataset(Dataset):
 
 
 def to_grayscale(pil_img):
-    return pil_img.convert('L')
+    gray = pil_img.convert('L')
+    return gray
 
 
 def train(discriminator, generator, optimizer, criterion, train_loader, use_gpu,
           epochs=100, total_iter=0, epoch_start=0):
     for epoch in range(epoch_start, epochs):
         for iter, (X, Y) in enumerate(train_loader):
+            # Zero EVERYTHING
+            discriminator.zero_grad()
+            if generator is not None:
+                generator.zero_grad()
             optimizer.zero_grad()
 
             if use_gpu:
@@ -108,6 +134,8 @@ def train(discriminator, generator, optimizer, criterion, train_loader, use_gpu,
             v_labels = labels.view(-1, 1)
             loss = criterion(v_outputs, v_labels)
             loss.backward()
+            # Update the weights for only the subset we're training dependent
+            # on which optimizer we pass in.
             optimizer.step()
             torch.cuda.empty_cache()
             total_iter += 1
@@ -120,7 +148,6 @@ def debug_dat_model(discriminator, generator, img_loader):
     for iter, (X, Y) in enumerate(img_loader):
         if use_gpu:
             inputs = X.cuda()  # Move your inputs onto the gpu
-            criterion.cuda()
         else:
             inputs, labels = (X, Y)  # Unpack variables into inputs and labels
 
@@ -130,16 +157,18 @@ def debug_dat_model(discriminator, generator, img_loader):
         print("My Output Is: ", outputs)
 
 
-if __name__ == "__main__":
+def main_train():
     discriminator = PatchGANDiscriminator()
-    generator = FakeDanGenerator()
+    generator = Generator()
 
-    updateable_params = filter(lambda p: p.requires_grad,
-                               concat_generators(discriminator.parameters(),
-                                                  generator.parameters()))
     learning_rate = .005
-    optimizer = optim.Adam(updateable_params, lr=learning_rate)
-    use_gpu = torch.cuda.is_available()
+    updateable_params = filter(lambda p: p.requires_grad,
+                               discriminator.parameters())
+    discriminator_optimizer = optim.Adam(updateable_params, lr=learning_rate)
+    updateable_params = filter(lambda p: p.requires_grad,
+                               generator.parameters())
+    generator_optimizer = optim.Adam(updateable_params, lr=learning_rate)
+
     if use_gpu:
         discriminator = discriminator.cuda()
         generator = generator.cuda()
@@ -156,16 +185,97 @@ if __name__ == "__main__":
                               shuffle=True)
 
     for i in range(1, 10):
+        print(f"GAN EPOCH: {i}")
         # Train discriminator on color images
-        train(discriminator, None, optimizer, criterion, train_loader, use_gpu,
-              epochs=1, total_iter=0, epoch_start=0)
+        train(discriminator, None, discriminator_optimizer, criterion,
+              train_loader, use_gpu, epochs=1, total_iter=0, epoch_start=0)
         # Train discriminator on fakes
-        train(discriminator, generator, optimizer, criterion, gan_loader, use_gpu,
-              epochs=10, total_iter=0, epoch_start=0)
+        train(discriminator, generator, generator_optimizer, criterion,
+              gan_loader, use_gpu, epochs=10, total_iter=0, epoch_start=0)
+        real_score, fake_score = score_it(discriminator, generator)
+        print("REAL SCORE:", real_score)
+        print("FAKE SCORE:", fake_score)
 
     print("These should all be 1")
     debug_dat_model(discriminator, None, train_loader)
     print("These should all be 0")
     debug_dat_model(discriminator, generator, gan_loader)
 
+    now_time = time.strftime("%H-%M-%S")
+    os.makedirs("./pickles", exist_ok=True)
 
+    disc_file = f"./pickles/discriminator-{now_time}.p"
+    gen_file = f"./pickles/generator-{now_time}.p"
+    print("Saving to: ")
+    print(disc_file)
+    print(gen_file)
+    torch.save(discriminator, disc_file)
+    torch.save(generator, gen_file)
+
+
+def score_it(discriminator, generator):
+    train_loader = DataLoader(dataset=DanDataset("dan_images.csv"),
+                              batch_size=1,
+                              num_workers=4,
+                              shuffle=False)
+    gan_loader = DataLoader(dataset=DanDataset("dan_images.csv",
+                                               use_generator=True),
+                              batch_size=1,
+                              num_workers=4,
+                              shuffle=False)
+
+    rgb_images = enumerate(train_loader)
+    gray_images = enumerate(gan_loader)
+
+    real = []
+    fake = []
+    for checkit in range(5):
+        iter, (rgbX, __) = next(rgb_images)
+        iter, (grayX, __) = next(gray_images)
+
+        generatedX = generator(grayX)
+        rawY = discriminator(rgbX).item()
+        generatedY = discriminator(generatedX).item()
+
+        real.append(rawY)
+        fake.append(generatedY)
+
+    return np.mean(np.array(real)), np.mean(np.array(fake))
+
+def main_show(discriminator, generator):
+    train_loader = DataLoader(dataset=DanDataset("dan_images.csv"),
+                              batch_size=1,
+                              num_workers=4,
+                              shuffle=False)
+    gan_loader = DataLoader(dataset=DanDataset("dan_images.csv",
+                                               use_generator=True),
+                              batch_size=1,
+                              num_workers=4,
+                              shuffle=False)
+
+    rgb_images = enumerate(train_loader)
+    gray_images = enumerate(gan_loader)
+    for checkit in range(5):
+        iter, (rgbX, __) = next(rgb_images)
+        iter, (grayX, __) = next(gray_images)
+
+        generatedX = generator(grayX)
+        rawY = discriminator(rgbX).item()
+        generatedY = discriminator(generatedX).item()
+
+        print("RAW")
+        recreate_img(rgbX).show()
+        print("Real Is Real: ", rawY)
+        print("GRAY")
+        recreate_img(grayX, grayscale=True).show()
+        print("GAN")
+        print("Fake is Real: ", generatedY)
+        recreate_img(generatedX).show()
+        input()
+
+
+
+if __name__ == "__main__":
+    # main_train()
+    main_show(discriminator=torch.load("./pickles/discriminator-20-51-18.p"),
+              generator=torch.load("./pickles/generator-20-51-18.p"))

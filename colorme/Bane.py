@@ -96,7 +96,7 @@ class DoYouNetFeelInCharge(nn.Module):
         self.activateOrderSixtySix = nn.Tanh()
         
     def forward(self, x):
-        print("Why go forward when you could go sideways?")
+        # print("Why go forward when you could go sideways?")
         forConcatenation = list()
         for i in range(len(self.enigma)):
             x = self.enigma[i](x)
@@ -106,11 +106,11 @@ class DoYouNetFeelInCharge(nn.Module):
         for i in range(len(self.christopher)):
             x = self.christopher[i](x, forConcatenation[len(forConcatenation) - 1 - i])
         
-        print("MORTAL COMBAT: Finish Him...")
-        print("\n")
+        # print("MORTAL COMBAT: Finish Him...")
+        # print("\n")
         x = self.activateOrderSixtySix(self.finishHim(x))
-        print("Winner!!!: Final dimensions are:")
-        print(x.size())
+        # print("Winner!!!: Final dimensions are:")
+        # print(x.size())
         return x
         
 
