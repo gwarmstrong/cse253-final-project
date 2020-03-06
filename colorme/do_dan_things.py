@@ -34,7 +34,7 @@ GRAYSCALE_MEANS = np.array([.5])
 
 
 def cuda_enumerate(loader):
-    for iter, (X, Y) in loader:
+    for iter, (X, Y) in enumerate(loader):
         if use_gpu:
             X = X.cuda()
             Y = Y.cuda()
