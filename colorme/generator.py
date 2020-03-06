@@ -26,7 +26,19 @@ A tensor of (batch,3,H,W) with values bounded between -1 and 1 (tanh activation!
 
 import torch.nn as nn
 import torch.nn.functional as F
-import torch 
+import torch
+
+
+def tanh_onto_0_to_1(x):
+    return torch.multiply(0.5, torch.add(x, 1))
+
+def sigmoid_onto_0_to_1(x):
+    return x
+
+activations_onto_0_to_1 = {
+    nn.Tanh: tanh_onto_0_to_1,
+    nn.Sigmoid: sigmoid_onto_0_to_1,
+}
 
 class FCNGenerator(nn.Module):
     
@@ -97,6 +109,7 @@ class FCNGenerator(nn.Module):
         
         self.final_layer = nn.ConvTranspose2d(2 * output_channels_order[-1][1], 3, kernel_size= 4, stride = 2, padding = 1)
         self.final_activation = nn.Tanh()
+        self.activation_onto_0_to_1 = activations_onto_0_to_1[self.final_activation]
         
     def forward(self, x):
         # print("Why go forward when you could go sideways?")
@@ -114,6 +127,7 @@ class FCNGenerator(nn.Module):
         x = self.final_activation(self.final_layer(x))
         # print("Winner!!!: Final dimensions are:")
         # print(x.size())
+        x = self.activation_onto_0_to_1(x)
         return x
         
 
