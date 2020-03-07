@@ -1,11 +1,11 @@
 # train data file with filepaths
-train_data: "colorme/train_Tiny_ImageNet.csv"
+train_data: "dan_images.csv"
 
 # val data file with filepaths
-val_data: "colorme/val_Tiny_ImageNet.csv"
+val_data: "dan_images.csv"
 
 # subset the data to this many samples (-1 uses all)
-subset_size: 10000
+subset_size: -1
 
 # Number of workers for dataloader
 workers: 4

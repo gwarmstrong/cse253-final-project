@@ -17,6 +17,7 @@ pip install -e .
 If you want to train a model with `colorme`, you can use the CLI. For example, from the root `colorme` directory,
 you can train using the test config in the following way:
 ```bash
+cd colorme
 colorme train baseline --config colorme/testing/data/test_generator_config.yml 
 ```
 
