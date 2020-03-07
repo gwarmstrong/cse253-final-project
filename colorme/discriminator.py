@@ -1,4 +1,5 @@
 import torch.nn as nn
+from colorme.generator import InitializeWeights
 
 
 # A PatchGAN discriminator loosely based on
@@ -25,6 +26,8 @@ class PatchGANDiscriminator(nn.Module):
         self.collapse = nn.Conv2d(512, 1, kernel_size=1)
         self.leaky = nn.LeakyReLU(inplace=True)
         self.classifier = nn.Sigmoid()
+
+        self.apply(InitializeWeights)
 
     def forward(self, x):
         # print("-----------")
