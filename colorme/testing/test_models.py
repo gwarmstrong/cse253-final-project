@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest import mock
 from colorme.models import BaselineDCN, default_generator
 from colorme.generator import FCNGenerator
+import os
 from colorme.testing.utils import (RandomImage, NaiveConvGenerator,
                                    Small3x3x2x3Dataset, NaiveMultGenerator,
                                    ColormeTestCase,
@@ -85,3 +86,4 @@ class TestBaselineDCN_fit(ColormeTestCase):
         logdir = self.create_data_path('test_logs_actual_model')
         gen = BaselineDCN(n_epochs=3, lr=0.1, logdir=logdir)
         gen.fit(dl, val_dl)
+        self.assertTrue(os.path.exists(os.path.join(logdir, 'model_best.pth')))
