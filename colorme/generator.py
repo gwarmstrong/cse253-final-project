@@ -115,7 +115,7 @@ class FCNGenerator(nn.Module):
                 self.decoder_layers.append(FCNDecoderLayer(output_channels_order[i][0], output_channels_order[i][1], False))
         
         self.final_layer = nn.ConvTranspose2d(2 * output_channels_order[-1][1], 3, kernel_size= 4, stride = 2, padding = 1)
-        print("Initializing the final layer.....")
+        logging.debug("Initializing the final layer.....")
         self.final_layer.apply(InitializeWeights)
         self.final_activation = nn.Tanh()
         self.activation_onto_0_to_1 = activations_onto_0_to_1[
@@ -157,7 +157,7 @@ class FCNEncoderLayer(nn.Module): #encoder
                 out_channels), self.activation]
         logging.debug(layers)
         self.layers = nn.Sequential(*layers)
-        print("Initializing Encoder Weights...")
+        logging.debug("Initializing Encoder Weights...")
         self.layers.apply(InitializeWeights)
 
     def forward(self, x):
@@ -178,7 +178,7 @@ class FCNDecoderLayer(nn.Module):#decoder
         
         logging.debug(layers)
         self.layers = nn.Sequential(*layers)
-        print("Initializing Decoder Weights.....")
+        logging.debug("Initializing Decoder Weights.....")
         self.layers.apply(InitializeWeights)
 
     def forward(self, x, concatenated_features):

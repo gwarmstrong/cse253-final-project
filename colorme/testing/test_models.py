@@ -1,6 +1,6 @@
 from unittest import TestCase
 from unittest import mock
-from colorme.models import BaselineDCN, default_generator
+from colorme.models import BaselineDCN, default_generator, BaselineDCGAN
 from colorme.generator import FCNGenerator
 import os
 from colorme.testing.utils import (RandomImage, NaiveConvGenerator,
@@ -87,3 +87,23 @@ class TestBaselineDCN_fit(ColormeTestCase):
         gen = BaselineDCN(n_epochs=3, lr=0.1, logdir=logdir)
         gen.fit(dl, val_dl)
         self.assertTrue(os.path.exists(os.path.join(logdir, 'model_best.pth')))
+
+
+class TestBaselineDCGAN_init(ColormeTestCase):
+    def test_dcgan_init_with_defaults(self):
+        torch.manual_seed(725)
+        gan = BaselineDCGAN(n_epochs=10, lr=0.001, logdir='logs')
+        # self.assertIsInstance(gen.generator, default_generator)
+
+
+class TestBaselineDCGAN_fit(ColormeTestCase):
+    package = 'colorme.testing'
+
+    def test_fit_gan(self):
+        torch.manual_seed(725)
+        dat = CustomSizeRandomDataset((5, 3, 64, 64))
+        dl = DataLoader(dat, batch_size=2, shuffle=True)
+        val_dl = DataLoader(dat, batch_size=3, shuffle=False)
+        logdir = self.create_data_path('test_logs_gan_model')
+        gan = BaselineDCGAN(n_epochs=3, lr=0.1, logdir=logdir)
+        gan.fit(dl, val_dl)
