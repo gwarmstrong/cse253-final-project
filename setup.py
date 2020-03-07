@@ -7,5 +7,10 @@ setup(name='colorme',
       zip_safe=False,
       install_requries=[
             "torch>=1.4",
-      ]
+            "click",
+      ],
+      entry_points="""
+          [console_scripts]
+          colorme=colorme.scripts.training:colorme
+      """,
       )
