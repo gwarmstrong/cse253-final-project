@@ -5,10 +5,11 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
 import os
+from torch.utils.data import Dataset
 
-class ImageDataset():
-    
-    
+
+class ImageDataset(Dataset):
+
     def __init__(self, path_file, n_samples=None, random_seed=None, transform=None):
         """
         

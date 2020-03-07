@@ -11,6 +11,7 @@ generator_dict = {
     "FCNGenerator": FCNGenerator,
 }
 
+
 def load_config(path):
     """
     Load the configuration from config.yaml.
@@ -28,6 +29,7 @@ def train_baseline(config_path):
         subset_size = None
     random_seed = config.get("random_seed", None)
     image_size = config.get("image_size", None)
+    batch_size = config.get("batch_size", 1)
     use_gpu = config.get("use_gpu", torch.cuda.is_available())
     lr = config.get("lr",)
     generator_type = config.get('generator', "FCNGenerator")
@@ -35,6 +37,8 @@ def train_baseline(config_path):
     num_epochs = config["num_epochs"]
     summary_interval = config.get("summary_interval", 10)
     validation_interval = config.get("validation_interval", 100)
+    # 0 is default dataloader value for num_workers
+    num_workers = config.get("num_workers", 0)
 
     # TODO may want to figure out a way to make this more general
     input_dimensions = (1, 1, image_size, image_size)
@@ -45,23 +49,36 @@ def train_baseline(config_path):
         torch.manual_seed(random_seed)
     if image_size is not None:
         train_transform = [transforms.RandomCrop(image_size),
-                     transforms.RandomHorizontalFlip()]
+                           transforms.RandomHorizontalFlip()]
         val_transform = [transforms.CenterCrop(image_size)]
     else:
         train_transform = [transforms.RandomHorizontalFlip()]
         val_transform = None
 
-    train_dataloader = ImageDataset(path_file=train_data,
-                                    n_samples=subset_size,
-                                    random_seed=random_seed,
-                                    transform=train_transform,
-                                    )
+    train_dataset = ImageDataset(path_file=train_data,
+                                 n_samples=subset_size,
+                                 random_seed=random_seed,
+                                 transform=train_transform,
+                                 )
 
-    val_dataloader = ImageDataset(path_file=train_data,
-                                  n_samples=subset_size,
-                                  random_seed=random_seed,
-                                  transform=val_transform,
-                                  )
+    val_dataset = ImageDataset(path_file=val_data,
+                               n_samples=subset_size,
+                               random_seed=random_seed,
+                               transform=val_transform,
+                               )
+
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+    )
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+    )
 
     model = BaselineDCN(n_epochs=num_epochs, lr=lr, logdir=logdir,
                         use_gpu=use_gpu,

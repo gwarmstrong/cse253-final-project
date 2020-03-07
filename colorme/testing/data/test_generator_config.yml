@@ -5,13 +5,16 @@ train_data: "colorme/train_Tiny_ImageNet.csv"
 val_data: "colorme/val_Tiny_ImageNet.csv"
 
 # subset the data to this many samples (-1 uses all)
-subset_size: -1
+subset_size: 10000
 
 # Number of workers for dataloader
-workers: 2
+workers: 4
 
 # Batch size during training
-batch_size: 128
+batch_size: 32
+
+# number of workers for dataloader
+num_workers: 4
 
 # Spatial size of training images. All images will be cropped to this
 #   size using a transformer.
@@ -24,7 +27,7 @@ random_seed: 725
 num_epochs: 5
 
 # Learning rate for optimizers
-lr: 0.0002
+lr: 0.005
 
 # how many iterations since the last update to wait before printing out training stats
 summary_interval: 10
