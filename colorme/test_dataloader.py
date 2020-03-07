@@ -1,14 +1,10 @@
-import os
-import random
+import torch
 import argparse
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from PIL import Image
 import torchvision.transforms as transforms
-from dataloader import *
 import torch.utils.data as data
-from tensorboardX import SummaryWriter
+from colorme.dataloader import ImageDataset
+from torch.utils.tensorboard import SummaryWriter
+
 
 def main():
     writer = SummaryWriter('tensorboard')
@@ -17,20 +13,24 @@ def main():
     transform = [transforms.RandomCrop(args.crop_size),
              transforms.RandomHorizontalFlip()]
     
-    print("Subsetting {0} images from dataset and transforming with random horizontal flip and random crop to {1}x{1}".format(args.num_samples, args.crop_size))
-    dataset = ImageDataset(train_csv, n_samples=args.num_samples, random_seed=args.random_seed, transform=transform)
+    print("Subsetting {0} images from dataset and transforming with random "
+          "horizontal flip and random crop to {1}x{1}".format(
+                args.num_samples, args.crop_size))
+    dataset = ImageDataset(train_csv, n_samples=args.num_samples,
+                           random_seed=args.random_seed, transform=transform)
     train_loader = torch.utils.data.DataLoader(dataset=dataset,
-                                           batch_size=args.batch_size,
-                                           num_workers=4,
-                                           shuffle=args.shuffle_data)
+                                               batch_size=args.batch_size,
+                                               num_workers=4,
+                                               shuffle=args.shuffle_data)
     
     for i, (gray, rgb) in enumerate(train_loader):
         print('Batch {} Grayscale size:'.format(i+1), gray.size())
         print('Batch {} RGB size:'.format(i+1), rgb.size())
         writer.add_images("Batch {} Grayscale Image".format(i+1), gray, i)
         writer.add_images("Batch {} Color Image".format(i+1), rgb, i)
-        writer.flush()
+    writer.flush()
     writer.close()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
