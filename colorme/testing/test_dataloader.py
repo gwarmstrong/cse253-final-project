@@ -21,11 +21,11 @@ class TestDataLoader(ColormeTestCase):
         transform = [transforms.RandomCrop(self.crop_size),
                      transforms.RandomHorizontalFlip()]
 
-        print("Subsetting {0} images from dataset and transforming with "
-              "random horizontal flip and random crop to {1}x{1}".format(
-                    self.num_samples, self.crop_size))
-        import os
-        logging.debug(os.path.abspath(os.curdir))
+        # print("Subsetting {0} images from dataset and transforming with "
+        #       "random horizontal flip and random crop to {1}x{1}".format(
+        #             self.num_samples, self.crop_size))
+        # import os
+        # logging.debug(os.path.abspath(os.curdir))
         self.dataset = ImageDataset(train_csv, n_samples=self.num_samples,
                                     random_seed=self.random_seed,
                                     transform=transform)
