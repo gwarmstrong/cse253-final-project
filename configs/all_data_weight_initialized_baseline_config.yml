@@ -1,0 +1,40 @@
+# train data file with filepaths
+train_data: "train_Tiny_ImageNet.csv"
+
+# val data file with filepaths
+val_data: "test_Tiny_ImageNet.csv"
+
+# subset the data to this many samples (-1 uses all) #1000
+subset_size: -1
+
+# Batch size during training
+batch_size: 32
+
+# number of workers for dataloader
+num_workers: 4
+
+# Spatial size of training images. All images will be cropped to this
+#   size using a transformer.
+image_size: 64
+
+# seed to use for random state
+random_seed: 725
+
+# Number of training epochs
+num_epochs: 10
+
+# Learning rate for optimizers
+lr: 0.005
+
+# how many iterations since the last update to wait before printing out training stats
+summary_interval: 10
+
+# how many iterations since the last update to wait before printing out validation stats
+validation_interval: 100
+
+# string corresponding to type of generator to use
+generator: 'FCNGenerator'
+
+logdir: './logs/baseline_frst_config_gpu_test'
+
+use_gpu: True
