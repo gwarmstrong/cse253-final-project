@@ -1,0 +1,40 @@
+# train data file with filepaths
+train_data: "colorme/train_Tiny_ImageNet.csv"
+
+# val data file with filepaths
+val_data: "colorme/test_Tiny_ImageNet.csv"
+
+# subset the data to this many samples (-1 uses all)
+subset_size: 1000
+
+# Batch size during training
+batch_size: 32
+
+# number of workers for dataloader
+num_workers: 4
+
+# Spatial size of training images. All images will be cropped to this
+#   size using a transformer.
+image_size: 64
+
+# seed to use for random state
+random_seed: 725
+
+# Number of training epochs
+num_epochs: 5
+
+# Learning rate for optimizers
+lr: 0.005
+
+# how many iterations since the last update to wait before printing out training stats
+summary_interval: 10
+
+# how many iterations since the last update to wait before printing out validation stats
+validation_interval: 100
+
+# string corresponding to type of generator to use
+generator: 'FCNGenerator'
+
+logdir: './testing/data/test_config_logs3'
+
+use_gpu: True
