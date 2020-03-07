@@ -6,8 +6,12 @@ setup(name='colorme',
       packages=find_packages(),
       zip_safe=False,
       install_requries=[
+            # TODO pin versions
             "torch>=1.4",
+            "torchvision",
             "click",
+            "pandas",
+            "pillow",
       ],
       entry_points="""
           [console_scripts]
