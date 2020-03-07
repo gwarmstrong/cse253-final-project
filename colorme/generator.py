@@ -27,6 +27,7 @@ A tensor of (batch,3,H,W) with values bounded between -1 and 1 (tanh activation!
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+import logging
 
 
 def tanh_onto_0_to_1(x):
@@ -47,22 +48,22 @@ class FCNGenerator(nn.Module):
         # dimensions are a tuple of (B,Depth,H,W) Note (reminder) --> PyTorch uses channels/depth in the 1 index NOT the 3 index!!!!!!
         super(FCNGenerator, self).__init__()
         if inputDimensions[2] != inputDimensions[3]:
-            print("Yo dumbass, learn to feed in a square image!")
+            logging.debug("Yo dumbass, learn to feed in a square image!")
         if inputDimensions[2]%2 != 0:
-            print("Do you understand how this works??? Feed in a square image that has h,w dimensions that are powers of 2")
+            logging.debug("Do you understand how this works??? Feed in a square image that has h,w dimensions that are powers of 2")
         numLayers = -1
         currentDim = inputDimensions[3]
         while currentDim != 1:
             numLayers +=1
             currentDim = currentDim/2
-        print(f"num_layers: {numLayers}")
-        print("Photocopier Initialize!: Input dimensions are:")
+        logging.debug(f"num_layers: {numLayers}")
+        logging.debug("Photocopier Initialize!: Input dimensions are:")
         self.num_layers = numLayers
-        print(inputDimensions)
-        print("\n")
+        logging.debug(inputDimensions)
+        logging.debug("\n")
         possible_channel_values = [64, 128, 256, 512, 512, 512, 512]
         input_channels_order = [inputDimensions[1]] + possible_channel_values[:numLayers]
-        #print(relevantInputChannels)
+        #logging.debug(relevantInputChannels)
 
         output_channels_order = [] #[(howDoUFeel[:numLayers][-1], howDoUFeel[:numLayers][-1])] #[howDoUFeel[:numLayers][-1]] + [2*el for el in howDoUFeel[:numLayers][::-1]] # Front is because of bottleneck layer; 3 is the number of color channels
         reversed_channel_values = possible_channel_values[:numLayers][::-1]
@@ -75,16 +76,16 @@ class FCNGenerator(nn.Module):
 
 
 
-        #print(relevantOutputChannels)
+        #logging.debug(relevantOutputChannels)
         
         self.encoder_layers = nn.ModuleList()
         self.decoder_layers = nn.ModuleList()
         
-        print("Time to look under the hood of enigma:")
+        logging.debug("Time to look under the hood of enigma:")
         for i in range(len(input_channels_order) - 1):
             if i == 0:
-                #print(relevantInputChannels[i])
-                #print(relevantInputChannels[i+1])
+                #logging.debug(relevantInputChannels[i])
+                #logging.debug(relevantInputChannels[i+1])
                 self.encoder_layers.append(FCNEncoderLayer(input_channels_order[i], input_channels_order[i + 1], False))
                 #self.christopher.append()
             else:
@@ -93,16 +94,16 @@ class FCNGenerator(nn.Module):
         #bottlenecklayer
         self.encoder_layers.append(FCNEncoderLayer(input_channels_order[len(input_channels_order) - 1], input_channels_order[len(input_channels_order) - 1], False))
         #self.christopher.append()
-        #print("I have gotten through the encoder...")
-        print("\n")
-        print("Christopher what are your magical decoding connections?")
+        #logging.debug("I have gotten through the encoder...")
+        logging.debug("\n")
+        logging.debug("Christopher what are your magical decoding connections?")
         for i in range(len(output_channels_order)):
-            #print("I have gotten through the decoder...")
+            #logging.debug("I have gotten through the decoder...")
             #if i == 0:
             #    self.christopher.append(YoullJustHaveToImagineTheFire(relevantOutputChannels[i],relevantOutputChannels[i]))
             if i < 3: 
-                #print(relevantOutputChannels[i])
-                #print(relevantOutputChannels[i+1])
+                #logging.debug(relevantOutputChannels[i])
+                #logging.debug(relevantOutputChannels[i+1])
                 self.decoder_layers.append(FCNDecoderLayer(output_channels_order[i][0], output_channels_order[i][1]))
             else:
                 self.decoder_layers.append(FCNDecoderLayer(output_channels_order[i][0], output_channels_order[i][1], False))
@@ -113,21 +114,21 @@ class FCNGenerator(nn.Module):
             self.final_activation.__class__]
         
     def forward(self, x):
-        # print("Why go forward when you could go sideways?")
+        # logging.debug("Why go forward when you could go sideways?")
         forConcatenation = list()
         for i in range(len(self.encoder_layers)):
             x = self.encoder_layers[i](x)
             if (i != len(self.encoder_layers) - 1): #don't want the bottleneck layer
                 forConcatenation.append(x)
-                #print(x.size())
+                #logging.debug(x.size())
         for i in range(len(self.decoder_layers)):
             x = self.decoder_layers[i](x, forConcatenation[len(forConcatenation) - 1 - i])
         
-        # print("MORTAL COMBAT: Finish Him...")
-        # print("\n")
+        # logging.debug("MORTAL COMBAT: Finish Him...")
+        # logging.debug("\n")
         x = self.final_activation(self.final_layer(x))
-        # print("Winner!!!: Final dimensions are:")
-        # print(x.size())
+        # logging.debug("Winner!!!: Final dimensions are:")
+        # logging.debug(x.size())
         x = self.activation_onto_0_to_1(x)
         return x
         
@@ -136,8 +137,8 @@ class FCNEncoderLayer(nn.Module): #encoder
     def __init__(self, in_channels, out_channels, batchNorm = True):
         super(FCNEncoderLayer, self).__init__()
 
-        #print(lotOfHeat)
-        #print(freshOutOfTheOven)
+        #logging.debug(lotOfHeat)
+        #logging.debug(freshOutOfTheOven)
         self.activation = nn.LeakyReLU(0.2, inplace=True)
         if not batchNorm:
             layers = [nn.Conv2d(in_channels, out_channels, kernel_size = 4,
@@ -146,14 +147,14 @@ class FCNEncoderLayer(nn.Module): #encoder
             layers = [nn.Conv2d(in_channels, out_channels, kernel_size = 4,
                                 padding = 1, stride = 2), nn.BatchNorm2d(
                 out_channels), self.activation]
-        print(layers)
+        logging.debug(layers)
         self.layers = nn.Sequential(*layers)
 
 
     def forward(self, x):
-        #print(x.shape)
-        #print("Running an iteration")
-        #print(self.layer(x).size())
+        #logging.debug(x.shape)
+        #logging.debug("Running an iteration")
+        #logging.debug(self.layer(x).size())
         return self.layers(x)
         
         
@@ -166,17 +167,17 @@ class FCNDecoderLayer(nn.Module):#decoder
         else:
             layers = [nn.ConvTranspose2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1), nn.BatchNorm2d(out_channels)]
         
-        print(layers)
+        logging.debug(layers)
         self.layers = nn.Sequential(*layers)
 
     def forward(self, x, concatenated_features):
-        #print("Going Forward")
+        #logging.debug("Going Forward")
         x = self.layers(x)
-        #print("AYAYAYAYAAYA")
-        #print(x.shape)
-        #print(selenaKyle.shape)
+        #logging.debug("AYAYAYAYAAYA")
+        #logging.debug(x.shape)
+        #logging.debug(selenaKyle.shape)
         x = torch.cat((x, concatenated_features), 1)
-        #print(x.shape)
+        #logging.debug(x.shape)
         return F.relu(x)
 
 
