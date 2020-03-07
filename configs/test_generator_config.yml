@@ -35,6 +35,6 @@ validation_interval: 100
 # string corresponding to type of generator to use
 generator: 'FCNGenerator'
 
-logdir: './testing/data/test_config_logs3'
+logdir: './logs/baseline_frst_config_gpu_test'
 
 use_gpu: True
