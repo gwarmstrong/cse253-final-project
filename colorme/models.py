@@ -343,6 +343,8 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
         self.Doptimzer_kwargs = {'lr': self.lr}
         self.validation_interval = validation_interval
         self.training_loop = training_loop
+        self.real_label = 0
+        self.fake_label = 1
         if self.use_gpu:
             # should move the model to GPU if use_gpu is true...
             # TODO test this on GPU
@@ -387,15 +389,15 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
         global_step = 0
         best_val_loss = np.inf
         for epoch in range(self.n_epochs):
-            Gloss, Dloss = training_loop(Goptimizer,
-                                         Doptimizer,
-                                         best_val_loss,
-                                         epoch,
-                                         global_step,
-                                         train_dataloader,
-                                         val_dataloader,
-                                         writer
-                                         )
+            Gloss, Dloss, global_step = training_loop(Goptimizer,
+                                                      Doptimizer,
+                                                      best_val_loss,
+                                                      epoch,
+                                                      global_step,
+                                                      train_dataloader,
+                                                      val_dataloader,
+                                                      writer
+                                                      )
 
             G_losses.append(Gloss)
             D_losses.append(Dloss)
@@ -422,21 +424,80 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
                 X_gray = X_gray.cuda()
                 X_color = X_color.cuda()
 
-            output = self.generator(X_gray)
+            # this is COMPLETELY copy paste and edit from pytorch
+            # tutorials
+            ############################
+            # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
+            ###########################
+            # Train with all-real batch
+            self.discriminator.zero_grad()
+            # Format batch
+            b_size = X_color.size(0)
+            label = torch.full((b_size,), self.real_label)
+            if self.use_gpu:
+                label = label.cuda()
+            # Forward pass real batch through D
+            output = self.discriminator(X_color).view(-1)
+            # Calculate loss on all-real batch
+            errD_real = self.Dcriterion(output, label)
+            errD_real.backward()
 
-            loss = self.Gcriterion(output, X_color)
-            loss.backward()
+            # Train with all-fake batch
+            # Generate fake image batch with G
+            fake = self.generator(X_gray)
+            label.fill_(self.fake_label)
+            # Classify all fake batch with D
+            output = self.discriminator(fake.detach()).view(-1)
+            # Calculate D's loss on the all-fake batch
+            errD_fake = self.Dcriterion(output, label)
+            errD_fake.backward()
+            # Add the gradients from the all-real and all-fake batches
+            errD = errD_real + errD_fake
+
+            # Calculate gradients for D in backward pass
+            # errD.backward()
+
+            # Update D
+            Doptimizer.step()
+
+            ############################
+            # (2) Update G network: minimize (1 - log(D(G(z)))) + || t - G(z) ||
+            #  where z is grayscale and t is color of the same image
+            ###########################
+            self.generator.zero_grad()
+            label.fill_(self.real_label)  # fake labels are real for generator
+            errG_color = self.Gcriterion(fake, X_color)
+            # cost
+            # Since we just updated D, perform another forward pass of
+            # all-fake batch through D
+            output = self.discriminator(fake).view(-1)
+            # Calculate G's loss based on this output
+            errG_fool = self.Gcriterion(output, label)
+            # Calculate gradients for G
+            errG = errG_fool + errG_color
+            errG.backward()
+
+            # Update G
             Goptimizer.step()
-            Gloss = loss.cpu().item()
 
+            ############################
+            # END OF PYTORCH TUTORIAL LOOP
+            ############################
+
+            Gloss = errG.cpu().item()
+            Dloss = errD.cpu().item()
+
+            # TODO log the losses
             if i % self.summary_interval == 0:
                 # TODO add elapsed time to logs
                 logging.info(f"Epoch: [{epoch + 1}/"
                              f"{self.n_epochs}]\tIteration: "
                              f"[{i + 1}/{len(train_dataloader)}]\tTrain "
-                             f"Gloss: {Gloss}"
+                             f"Gloss: {Gloss}\tTrain Dloss: {Dloss}"
                              )
                 writer.add_scalar('i.train_loss/generator', Gloss,
+                                  global_step=global_step)
+                writer.add_scalar('i.train_loss/discriminator', Dloss,
                                   global_step=global_step)
 
             if (i % self.validation_interval == 0) and (
@@ -458,7 +519,7 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
                 is_best = False
 
             global_step += 1
-        return Gloss, NotImplemented()
+        return Gloss, Dloss, global_step
 
     def forward(self, X, train='none', skip_generator=False):
         """
@@ -476,7 +537,8 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
         col_im : torch.tensor of shape (batch_size, H, W, N)
             colored image predicted from X
         disc : torch.tensor of shape (batch_size, 1)
-            probability that the image is fake/real
+            probability that the image is real (1 for real, 0 for fake).
+            can check self.real_label and self.fake_label
 
         """
         if train in {'generator', 'both'}:

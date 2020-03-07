@@ -1,5 +1,5 @@
 import click
-from colorme.training import train_baseline
+from colorme.training import train_baseline, train_baseline_gan
 
 
 @click.group()
@@ -16,3 +16,9 @@ def train():
 @click.option('--config', type=click.Path(exists=True))
 def baseline(config):
     train_baseline(config_path=config)
+
+
+@train.command()
+@click.option('--config', type=click.Path(exists=True))
+def baseline_gan(config):
+    train_baseline_gan(config_path=config)

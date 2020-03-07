@@ -104,6 +104,8 @@ class TestBaselineDCGAN_fit(ColormeTestCase):
         dat = CustomSizeRandomDataset((5, 3, 64, 64))
         dl = DataLoader(dat, batch_size=2, shuffle=True)
         val_dl = DataLoader(dat, batch_size=3, shuffle=False)
-        logdir = self.create_data_path('test_logs_gan_model')
+        logdir = 'test_logs_gan_model'
+        logdir = self.create_data_path(logdir)
         gan = BaselineDCGAN(n_epochs=3, lr=0.1, logdir=logdir)
         gan.fit(dl, val_dl)
+        self.assertTrue(os.path.exists(os.path.join(logdir, 'model_best.pth')))
