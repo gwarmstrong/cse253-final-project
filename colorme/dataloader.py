@@ -6,11 +6,12 @@ import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
 import os
 from torch.utils.data import Dataset
+from skimage import color
 
 
 class ImageDataset(Dataset):
 
-    def __init__(self, path_file, n_samples=None, random_seed=None, transform=None):
+    def __init__(self, path_file, n_samples=None, random_seed=None, transform=None, color_space=None):
         """
         
         Parameters
@@ -44,6 +45,10 @@ class ImageDataset(Dataset):
             else:
                 self.data = full_data.sample(n_samples, random_state=random_seed)
         self.transform = transform
+        if color_space is None:
+            self.color = 'RGB'
+        else:
+            self.color = color_space
     
     
     def __getitem__(self, idx):
@@ -67,21 +72,31 @@ class ImageDataset(Dataset):
             idx = idx.tolist()
         
         img_name = self.data.iloc[idx, 0]        
-        im_init = Image.open(img_name).convert('RGB')        
+        im_init = Image.open(img_name).convert('RGB')
+        
         img = im_init.copy()    
              
         if self.transform is not None:
             transform = transforms.Compose(self.transform)
             img = transform(img)        
         
-        grayscale = transforms.Grayscale(num_output_channels=1)
-        gray_img = grayscale(img.copy())
-
-        pil2tensor = transforms.ToTensor()
-        rgb_tensor = pil2tensor(img)
-        gray_tensor = pil2tensor(gray_img)
-        
-        return gray_tensor, rgb_tensor
+        gray_normalize = transforms.Compose([transforms.Grayscale(num_output_channels=1),
+                                             transforms.ToTensor(), 
+                                             transforms.Normalize(mean=[0.458971], std=[0.246539])])
+        gray_tensor = gray_normalize(img.copy())
+   
+        if self.color == 'LAB':
+            img = color.rgb2lab(img).transpose(2, 0, 1)
+            img_tensor = torch.from_numpy(img)
+            
+        elif self.color == 'RGB':
+            rgb_normalize = transforms.Compose([transforms.ToTensor(), 
+                                                transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                                                     std=[0.229, 0.224, 0.225])])
+                                                
+            img_tensor = rgb_normalize(img)
+    
+        return gray_tensor, img_tensor
 
     
     def __len__(self):
@@ -100,6 +115,10 @@ if __name__ == "__main__":
     train_csv = 'dan_images.csv'
     transform = [transforms.RandomCrop(64),
                  transforms.RandomHorizontalFlip()]
-    dataset = ImageDataset(train_csv, n_samples=5, random_seed=13,
-                           transform=transform)
-    print(dataset[0])
+    rgb_dataset = ImageDataset(train_csv, n_samples=5, random_seed=13,
+                           transform=transform, color_space='RGB')
+    print(rgb_dataset[0])
+    
+    lab_dataset = ImageDataset(train_csv, n_samples=5, random_seed=13,
+                           transform=transform, color_space='LAB')
+    print(lab_dataset[0])
