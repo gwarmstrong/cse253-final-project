@@ -302,6 +302,12 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
                  discriminator_kwargs: dict = None,
                  training_loop: str = 'auto',
                  alpha: float = 0.5,
+                 Gbeta1: float = 0.5,
+                 Gbeta2: float = 0.999,
+                 Dbeta1: float = 0.5,
+                 Dbeta2: float = 0.999,
+                 Glr: float = None,
+                 Dlr: float = None,
                  ):
         """
 
@@ -344,8 +350,17 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
         self.Dcriterion = discriminator_criterion
         self.Goptimizer = Adam
         self.Doptimizer = Adam
-        self.Goptimzer_kwargs = {'lr': self.lr}
-        self.Doptimzer_kwargs = {'lr': self.lr}
+        self.Gbetas = (Gbeta1, Gbeta2)
+        self.Dbetas = (Dbeta1, Dbeta2)
+        self.Glr = Glr
+        self.Dlr = Dlr
+
+        self.Goptimzer_kwargs = {'lr': self.lr if not Glr else Glr,
+                                 'betas': self.Gbetas,
+                                 }
+        self.Doptimzer_kwargs = {'lr': self.lr if not Dlr else Dlr,
+                                 'betas': self.Dbetas,
+                                 }
         self.validation_interval = validation_interval
         self.training_loop = training_loop
         self.real_label = 0
