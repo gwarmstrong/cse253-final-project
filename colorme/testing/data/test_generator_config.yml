@@ -38,4 +38,18 @@ validation_interval: 100
 # string corresponding to type of generator to use
 generator: 'FCNGenerator'
 
-logdir: './testing/data/test_config_logs'
+logdir: './testing/data/test_config_logs_gan_v2'
+
+generator_criterion: 'SSIM_Loss'
+
+Gbeta1: 0.4
+
+Gbeta2: 0.98
+
+Dbeta1: 0.45
+
+Dbeta2: 0.97
+
+Dlr: 0.444
+
+Glr: 0.56
