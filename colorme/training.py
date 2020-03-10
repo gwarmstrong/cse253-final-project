@@ -1,12 +1,22 @@
 import os
 import torch
+from torch import nn
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 from colorme.models import BaselineDCN, BaselineDCGAN
 from colorme.dataloader import ImageDataset
 from colorme.generator import FCNGenerator
 from colorme.discriminator import PatchGANDiscriminator
+from pytorch_msssim import SSIM
 import yaml
+
+
+class SSIM_Loss(SSIM):
+    def __init__(self):
+        super().__init__(data_range=1.0, size_average=True, channel=3)
+
+    def forward(self, img1, img2):
+        return 100*(1 - super(SSIM_Loss, self).forward(img1, img2))
 
 generator_dict = {
     "FCNGenerator": FCNGenerator,
@@ -14,6 +24,12 @@ generator_dict = {
 
 discriminator_dict = {
     "PatchGANDiscriminator": PatchGANDiscriminator,
+}
+
+criterions = {
+    "MSELoss": nn.MSELoss,
+    "L1Loss": nn.L1Loss,
+    "SSIM_Loss": SSIM_Loss,
 }
 
 
@@ -42,6 +58,9 @@ def train_baseline(config_path):
     num_epochs = config["num_epochs"]
     summary_interval = config.get("summary_interval", 10)
     validation_interval = config.get("validation_interval", 100)
+    generator_criterion = config.get("generator_criterion", None)
+    if generator_criterion is not None:
+        generator_criterion = criterions[generator_criterion]()
     # 0 is default dataloader value for num_workers
     num_workers = config.get("num_workers", 0)
 
@@ -91,6 +110,7 @@ def train_baseline(config_path):
                         validation_interval=validation_interval,
                         generator=generator,
                         generator_kwargs=generator_kwargs,
+                        criterion=generator_criterion,
                         )
 
     model.fit(train_dataloader, val_dataloader)
@@ -114,6 +134,9 @@ def train_baseline_gan(config_path):
     num_epochs = config["num_epochs"]
     summary_interval = config.get("summary_interval", 10)
     validation_interval = config.get("validation_interval", 100)
+    generator_criterion = config.get("generator_criterion", None)
+    if generator_criterion is not None:
+        generator_criterion = criterions[generator_criterion]()
     # 0 is default dataloader value for num_workers
     num_workers = config.get("num_workers", 0)
 
@@ -170,6 +193,7 @@ def train_baseline_gan(config_path):
                           validation_interval=validation_interval,
                           generator=generator,
                           generator_kwargs=generator_kwargs,
+                          generator_criterion=generator_criterion,
                           discriminator=discriminator,
                           discriminator_kwargs=discriminator_kwargs,
                           training_loop=training_loop,
@@ -177,3 +201,5 @@ def train_baseline_gan(config_path):
                           )
 
     model.fit(train_dataloader, val_dataloader)
+
+

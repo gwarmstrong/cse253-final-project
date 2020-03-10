@@ -5,10 +5,10 @@ from colorme.training import train_baseline, train_baseline_gan
 
 
 log_levels = {
-    'info' : logging.INFO,
-    'INFO' : logging.INFO,
     'debug' : logging.DEBUG,
     'DEBUG' : logging.DEBUG,
+    'info' : logging.INFO,
+    'INFO' : logging.INFO,
     'WARNING' : logging.WARNING,
     'ERROR' : logging.ERROR,
     'CRITICAL' : logging.CRITICAL,

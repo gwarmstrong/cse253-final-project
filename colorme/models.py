@@ -478,7 +478,7 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
             # all-fake batch through D
             output = self.discriminator(fake).view(-1)
             # Calculate G's loss based on this output
-            errG_fool = self.Gcriterion(output, label)
+            errG_fool = self.Dcriterion(output, label)
             # Calculate gradients for G
             errG = 2 * ((1 - self.alpha) * errG_fool + 
                     self.alpha * errG_color)
