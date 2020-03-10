@@ -301,6 +301,7 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
                  discriminator: nn.Module = None,
                  discriminator_kwargs: dict = None,
                  training_loop: str = 'auto',
+                 alpha: float = 0.5,
                  ):
         """
 
@@ -314,6 +315,10 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
             the directory to store the files logs in
         use_gpu : bool
             Whether the model should be run on a GPU
+        alpha : float
+            controls trade-off between reconstruction
+            and discriminator fooling loss for
+            the generator (1 is all l2, 0 is all CE)
 
         """
         self.saved_args = locals()
@@ -345,6 +350,7 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
         self.training_loop = training_loop
         self.real_label = 0
         self.fake_label = 1
+        self.alpha = alpha
         if self.use_gpu:
             # should move the model to GPU if use_gpu is true...
             # TODO test this on GPU
@@ -474,7 +480,8 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
             # Calculate G's loss based on this output
             errG_fool = self.Gcriterion(output, label)
             # Calculate gradients for G
-            errG = errG_fool + errG_color
+            errG = 2 * ((1 - self.alpha) * errG_fool + 
+                    self.alpha * errG_color)
             errG.backward()
 
             # Update G

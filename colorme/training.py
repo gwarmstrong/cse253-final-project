@@ -127,6 +127,7 @@ def train_baseline_gan(config_path):
     discriminator = discriminator_dict[discriminator_type]
     discriminator_kwargs = dict()
     training_loop = config.get('training_loop', 'auto')
+    alpha = config.get('alpha', 0.5)
 
     if random_seed is not None:
         torch.manual_seed(random_seed)
@@ -172,6 +173,7 @@ def train_baseline_gan(config_path):
                           discriminator=discriminator,
                           discriminator_kwargs=discriminator_kwargs,
                           training_loop=training_loop,
+                          alpha=alpha,
                           )
 
     model.fit(train_dataloader, val_dataloader)
