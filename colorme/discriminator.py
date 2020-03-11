@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from colorme.generator import InitializeWeights
 
@@ -51,5 +52,21 @@ class PatchGANDiscriminator(nn.Module):
         # print("-----------")
         # print(x)
         # print("END FORWARD")
+        # print("-----------")
+
+        # print("-----------")
+        # Compute arithmetic mean of sigmoids... uhh, this seems wrong
+        # print("I am well meaning")
+        # print(x.shape)
+        # x = torch.mean(x, dim=(2,3), keepdim=True)
+
+        # print(x)
+        # Compute to geometric mean instead of the arithmetic mean (bcuz these are probabilities)
+        num_patches = x.shape[2] * x.shape[3]
+        x = torch.prod(x, 2, keepdim=True)
+        x = torch.prod(x, 3, keepdim=True)
+        x = torch.pow(x, 1.0 / num_patches)
+        # print(x.shape)
+        # print(x)
         # print("-----------")
         return x
