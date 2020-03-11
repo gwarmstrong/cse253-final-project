@@ -11,7 +11,7 @@ from skimage import color
 
 class ImageDataset(Dataset):
 
-    def __init__(self, path_file, n_samples=None, random_seed=None, transform=None, color_space=None):
+    def __init__(self, path_file, n_samples=None, random_seed=None, transform=None, color_space=None, normalize=True):
         """
         
         Parameters
@@ -30,15 +30,23 @@ class ImageDataset(Dataset):
         color_space (str), optional
             color space to use for this dataset
             If None, RGB is used
+        normalize (bool), optional
+            Flag indicating whether to normalize (z-score) or not
+            If None, normalize by default
         
         Examples
         --------
         train_csv = 'train_Tiny_ImageNet.csv'
         transform = [transforms.RandomCrop(64),
              transforms.RandomHorizontalFlip()]
-        >>> dataset = ImageDataset(train_csv, n_samples=12, random_seed=13, transform=transform)
+        >>> dataset = ImageDataset(train_csv, 
+                               n_samples=12, 
+                               random_seed=13, 
+                               transform=transform, 
+                               color_space='RGB', normalize=True)
+                               
             
-        """
+        """   
         if n_samples is None:
             self.data = pd.read_csv(path_file)
         else:
@@ -52,6 +60,7 @@ class ImageDataset(Dataset):
             self.color = 'RGB'
         else:
             self.color = color_space
+        self.normal = normalize
     
     
     def __getitem__(self, idx):
@@ -76,30 +85,33 @@ class ImageDataset(Dataset):
         
         img_name = self.data.iloc[idx, 0]        
         im_init = Image.open(img_name).convert('RGB')
-        
         img = im_init.copy()    
              
         if self.transform is not None:
             transform = transforms.Compose(self.transform)
             img = transform(img)        
         
-        gray_normalize = transforms.Compose([transforms.Grayscale(num_output_channels=1),
-                                             transforms.ToTensor(), 
-                                             transforms.Normalize(mean=[0.458971], std=[0.246539])])
-        gray_tensor = gray_normalize(img.copy())
-   
+        grayscale = transforms.Compose([transforms.Grayscale(num_output_channels=1),
+                                             transforms.ToTensor()])        
+        gray_tensor = grayscale(img.copy()) 
+       
+        if self.normal:
+            gray_norm = transforms.Normalize(mean=[0.458971], std=[0.246539])  
+            gray_tensor = gray_norm(gray_tensor)
+        
         if self.color == 'LAB':
             img = color.rgb2lab(img).transpose(2, 0, 1)
             img_tensor = torch.from_numpy(img)
-            lab_normalize = transforms.Normalize(mean=[47.8360,  2.6550,  8.9181], std=[26.8397, 13.3277, 18.7259])
-            img_tensor = lab_normalize(img_tensor)
+            if self.normal:
+                lab_normalize = transforms.Normalize(mean=[47.8360,  2.6550,  8.9181], std=[26.8397, 13.3277, 18.7259])
+                img_tensor = lab_normalize(img_tensor)
             
         elif self.color == 'RGB':
-            rgb_normalize = transforms.Compose([transforms.ToTensor(), 
-                                                transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                                                                     std=[0.229, 0.224, 0.225])])
-                                                
-            img_tensor = rgb_normalize(img)
+            tensor = transforms.ToTensor()
+            img_tensor = tensor(img)          
+            if self.normal:
+                rgb_normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                img_tensor = rgb_normalize(img_tensor)
     
         return gray_tensor, img_tensor
 
@@ -117,20 +129,21 @@ class ImageDataset(Dataset):
 
     
 def unnormalize_batch(image_batch, color_space='RGB'):
-    """        
+    """     
+    
         Parameters
         ----------
         image_batch : (tensor of size (B, C, H, W))
-            a batch of normalized images
+            a batch of normalized images in color_space
         color_space : (str), optional
             the color space to unnormalize from
             
         Return
         ------
         inv_batch : (tensor of size (B, C, H, W))
-            a batch of unormalized images
+            a batch of unormalized images in RGB color space
         
-        """
+    """
     inv_batch = torch.empty(image_batch.size())
     for i, image in enumerate(image_batch):
         if color_space == 'RGB':
@@ -150,6 +163,28 @@ def unnormalize_batch(image_batch, color_space='RGB'):
             orig_image = inv_normalize(image)          
         inv_batch[i] = orig_image
     return inv_batch
+
+
+def batch_lab2rgb(lab_batch):
+    """        
+    
+        Parameters
+        ----------
+        lab_batch : (tensor of size (B, C, H, W))
+            a batch of LAB images not normalized
+            
+        Return
+        ------
+        inv_batch : (tensor of size (B, C, H, W))
+            a batch of RGB images not normalized
+        
+    """
+    rgb_batch = torch.empty(lab_batch.size())
+    for i, image in enumerate(lab_batch):
+        image = color.lab2rgb(image.numpy().transpose(1, 2, 0))
+        image = torch.from_numpy(image.transpose(2, 0, 1))
+        rgb_batch[i] = image
+    return rgb_batch
 
 if __name__ == "__main__":
     train_csv = 'dan_images.csv'
