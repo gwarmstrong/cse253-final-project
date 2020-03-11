@@ -24,10 +24,13 @@ class ImageDataset(Dataset):
         random_seed (int), optional
             Used to set random state for reproducable subsampling
             If None, no random state set
-        transform (list, optional)
+        transform (list), optional
             Optional transform to be applied on a sample, should be a list of torchvision transforms.
             If None, no transforms to images are applied
-            
+        color_space (str), optional
+            color space to use for this dataset
+            If None, RGB is used
+        
         Examples
         --------
         train_csv = 'train_Tiny_ImageNet.csv'
@@ -88,6 +91,8 @@ class ImageDataset(Dataset):
         if self.color == 'LAB':
             img = color.rgb2lab(img).transpose(2, 0, 1)
             img_tensor = torch.from_numpy(img)
+            lab_normalize = transforms.Normalize(mean=[47.8360,  2.6550,  8.9181], std=[26.8397, 13.3277, 18.7259])
+            img_tensor = lab_normalize(img_tensor)
             
         elif self.color == 'RGB':
             rgb_normalize = transforms.Compose([transforms.ToTensor(), 
@@ -110,6 +115,41 @@ class ImageDataset(Dataset):
         
         return len(self.data)
 
+    
+def unnormalize_batch(image_batch, color_space='RGB'):
+    """        
+        Parameters
+        ----------
+        image_batch : (tensor of size (B, C, H, W))
+            a batch of normalized images
+        color_space : (str), optional
+            the color space to unnormalize from
+            
+        Return
+        ------
+        inv_batch : (tensor of size (B, C, H, W))
+            a batch of unormalized images
+        
+        """
+    inv_batch = torch.empty(image_batch.size())
+    for i, image in enumerate(image_batch):
+        if color_space == 'RGB':
+            inv_normalize = transforms.Normalize(mean=[-0.485/0.229, -0.456/0.224, -0.406/0.225], 
+                                                                     std=[1/0.229, 1/0.224, 1/0.225])
+            orig_image = inv_normalize(image)
+            
+        elif color_space == 'LAB':
+            inv_normalize = transforms.Normalize(mean=[-47.8360/26.8397, -2.6550/13.3277, -8.9181/18.7259], 
+                                                 std=[1/26.8397, 1/13.3277, 1/18.7259])
+            orig_image = color.lab2rgb(inv_normalize(image).numpy().transpose(1, 2, 0))
+            orig_image = torch.from_numpy(orig_image.transpose(2, 0, 1))
+            
+        elif color_space == 'GRAY':
+            inv_normalize = transforms.Normalize(mean=[-0.458971/0.246539], 
+                                                 std=[1/0.246539])
+            orig_image = inv_normalize(image)          
+        inv_batch[i] = orig_image
+    return inv_batch
 
 if __name__ == "__main__":
     train_csv = 'dan_images.csv'
