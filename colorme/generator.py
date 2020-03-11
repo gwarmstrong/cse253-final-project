@@ -37,19 +37,26 @@ def InitializeWeights(m):
         torch.nn.init.normal_(m.bias.data.unsqueeze(0), std = 0.02)
 
 def tanh_onto_0_to_1(x):
-    return torch.mul(0.5, torch.add(x, 1))
+    x =torch.mul(0.5, torch.add(x, 1))
+    return x
 
 def sigmoid_onto_0_to_1(x):
+    return x
+
+def identity_onto_0_to_1(x):
     return x
 
 activations_onto_0_to_1 = {
     nn.Tanh: tanh_onto_0_to_1,
     nn.Sigmoid: sigmoid_onto_0_to_1,
+    nn.Identity: identity_onto_0_to_1
 }
 
 class FCNGenerator(nn.Module):
     
-    def __init__(self, inputDimensions=(1, 1, 64, 64)):
+    def __init__(self, inputDimensions=(1, 1, 64, 64),
+                 activation: nn.Module = None,
+                 ):
         #input
         # dimensions are a tuple of (B,Depth,H,W) Note (reminder) --> PyTorch uses channels/depth in the 1 index NOT the 3 index!!!!!!
         super(FCNGenerator, self).__init__()
@@ -117,7 +124,10 @@ class FCNGenerator(nn.Module):
         self.final_layer = nn.ConvTranspose2d(2 * output_channels_order[-1][1], 3, kernel_size= 4, stride = 2, padding = 1)
         logging.debug("Initializing the final layer.....")
         self.final_layer.apply(InitializeWeights)
-        self.final_activation = nn.Tanh()
+        if activation is None:
+            self.final_activation = nn.Tanh()
+        else:
+            self.final_activation = activation()
         self.activation_onto_0_to_1 = activations_onto_0_to_1[
             self.final_activation.__class__]
         

@@ -32,6 +32,12 @@ criterions = {
     "SSIM_Loss": SSIM_Loss,
 }
 
+activations = {
+    "Identity": nn.Identity,
+    "Tanh": nn.Tanh,
+    "Sigmoid": nn.Sigmoid,
+}
+
 
 def load_config(path):
     """
@@ -135,6 +141,9 @@ def train_baseline_gan(config_path):
     summary_interval = config.get("summary_interval", 10)
     validation_interval = config.get("validation_interval", 100)
     generator_criterion = config.get("generator_criterion", None)
+    generator_activation_type = config.get("generator_activation", "Tanh")
+    generator_activation = activations[generator_activation_type]
+
     if generator_criterion is not None:
         generator_criterion = criterions[generator_criterion]()
     # 0 is default dataloader value for num_workers
@@ -142,7 +151,9 @@ def train_baseline_gan(config_path):
 
     # TODO may want to figure out a way to make this more general
     input_dimensions = (1, 1, image_size, image_size)
-    generator_kwargs = {'inputDimensions': input_dimensions}
+    generator_kwargs = {'inputDimensions': input_dimensions,
+                        'activation': generator_activation,
+                        }
     logdir = config.get("logdir", os.path.join(os.curdir, 'logs'))
 
     # Discriminator specific args
@@ -157,6 +168,8 @@ def train_baseline_gan(config_path):
     Dbeta2 = config.get('Dbeta2', 0.999)
     Glr = config.get('Glr', None)
     Dlr = config.get('Dlr', None)
+    normalize = config.get("normalize", False)
+    color_space = config.get("color_space", "RGB")
 
     if random_seed is not None:
         torch.manual_seed(random_seed)
@@ -172,12 +185,14 @@ def train_baseline_gan(config_path):
                                  n_samples=subset_size,
                                  random_seed=random_seed,
                                  transform=train_transform,
+                                 normalize=normalize,
                                  )
 
     val_dataset = ImageDataset(path_file=val_data,
                                n_samples=subset_size,
                                random_seed=random_seed,
                                transform=val_transform,
+                               normalize=normalize,
                                )
 
     train_dataloader = DataLoader(
@@ -210,6 +225,8 @@ def train_baseline_gan(config_path):
                           Dbeta2=Dbeta2,
                           Glr=Glr,
                           Dlr=Dlr,
+                          normalize=normalize,
+                          color_space=color_space,
                           )
 
     model.fit(train_dataloader, val_dataloader)

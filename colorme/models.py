@@ -10,6 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 import contextlib
 from colorme.generator import FCNGenerator
 from colorme.discriminator import PatchGANDiscriminator
+from colorme.dataloader import unnormalize_batch, batch_lab2rgb
 
 default_generator = FCNGenerator
 
@@ -91,14 +92,19 @@ class ColorMeModelMixin:
                 keep_color = X_color.cpu()
                 keep_colorized = output.cpu()
         # TODO the colorized may have to be inverse transformed ?
+        keep_colorized = self.inverse_transform(keep_colorized,
+                                                self.color_space)
+
         writer.add_images('a.val_colorized', keep_colorized,
                           global_step=global_step)
         # TODO I guess if we're not shuffling we don't really
         #  need to save more than once... may want to avoid the
         #  'if' if we are going to shuffle val but I see no reason
         if global_step == 0:
+            keep_gray = self.inverse_transform(keep_gray, 'GRAY')
             writer.add_images('b.val_grayscale_input', keep_gray,
                               global_step=global_step)
+            keep_color = self.inverse_transform(keep_color, self.color_space)
             writer.add_images('c.val_color_label', keep_color,
                               global_step=global_step)
         avg_val_loss = total_val_loss / total_val_samples
@@ -110,6 +116,14 @@ class ColorMeModelMixin:
         writer.add_scalar('ii.val_loss', avg_val_loss,
                           global_step=global_step)
         return avg_val_loss
+
+    def inverse_transform(self, keep_colorized, color_space):
+        if self.normalize:
+            keep_colorized = unnormalize_batch(keep_colorized,
+                                               color_space=color_space)
+        elif self.color_space == 'LAB':
+            keep_colorized = batch_lab2rgb(keep_colorized)
+        return keep_colorized
 
     def save_checkpoint(self, state, is_best):
         filename = os.path.join(self.logdir, f"model_{state['model_type']}__"
@@ -168,6 +182,10 @@ class BaselineDCN(nn.Module, ColorMeModelMixin):
         self.Goptimizer = Adam
         self.Goptimzer_kwargs = {'lr': self.lr}
         self.validation_interval = validation_interval
+        # TODO fix this if we want to include normalization here
+        self.normalize = False
+        # TODO fix this if we want to change color spaces here
+        self.color_space = 'RGB'
         if self.use_gpu:
             # should move the model to GPU if use_gpu is true...
             # TODO test this on GPU
@@ -308,6 +326,8 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
                  Dbeta2: float = 0.999,
                  Glr: float = None,
                  Dlr: float = None,
+                 normalize: bool = False,
+                 color_space: str = 'RGB',
                  ):
         """
 
@@ -354,6 +374,8 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
         self.Dbetas = (Dbeta1, Dbeta2)
         self.Glr = Glr
         self.Dlr = Dlr
+        self.normalize = normalize
+        self.color_space = color_space
 
         self.Goptimzer_kwargs = {'lr': self.lr if not Glr else Glr,
                                  'betas': self.Gbetas,
