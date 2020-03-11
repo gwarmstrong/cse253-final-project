@@ -186,6 +186,7 @@ def train_baseline_gan(config_path):
                                  random_seed=random_seed,
                                  transform=train_transform,
                                  normalize=normalize,
+                                 color_space=color_space,
                                  )
 
     val_dataset = ImageDataset(path_file=val_data,
@@ -193,6 +194,7 @@ def train_baseline_gan(config_path):
                                random_seed=random_seed,
                                transform=val_transform,
                                normalize=normalize,
+                               color_space=color_space,
                                )
 
     train_dataloader = DataLoader(

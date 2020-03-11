@@ -101,7 +101,7 @@ class ImageDataset(Dataset):
             gray_tensor = gray_norm(gray_tensor)
 
         if self.color == 'LAB':
-            img = color.rgb2lab(img).transpose(2, 0, 1)
+            img = color.rgb2lab(img).transpose(2, 0, 1).astype(np.float32)
             img_tensor = torch.from_numpy(img)
             if self.normal:
                 lab_normalize = transforms.Normalize(mean=[47.8360,  2.6550,  8.9181], std=[26.8397, 13.3277, 18.7259])
