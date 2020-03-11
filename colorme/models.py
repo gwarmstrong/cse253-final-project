@@ -121,7 +121,7 @@ class ColorMeModelMixin:
         if self.normalize:
             keep_colorized = unnormalize_batch(keep_colorized,
                                                color_space=color_space)
-        elif self.color_space == 'LAB':
+        elif color_space == 'LAB':
             keep_colorized = batch_lab2rgb(keep_colorized)
         return keep_colorized
 
