@@ -473,7 +473,7 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
             errD_fake = self.Dcriterion(output, label)
             errD_fake.backward()
             # Add the gradients from the all-real and all-fake batches
-            errD = errD_real + errD_fake
+            errD = (errD_real + errD_fake) * 0.5 #JAMES modification
 
             # Calculate gradients for D in backward pass
             # errD.backward()
@@ -487,7 +487,7 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
             ###########################
             self.generator.zero_grad()
             label.fill_(self.real_label)  # fake labels are real for generator
-            errG_color = self.Gcriterion(fake, X_color)
+            errG_color = self.Gcriterion(fake, X_color) * 100 #JAMES modification
             # cost
             # Since we just updated D, perform another forward pass of
             # all-fake batch through D
@@ -495,8 +495,7 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
             # Calculate G's loss based on this output
             errG_fool = self.Dcriterion(output, label)
             # Calculate gradients for G
-            errG = 2 * ((1 - self.alpha) * errG_fool + 
-                    self.alpha * errG_color)
+            errG = errG_fool + errG_color # JAMES modification was: 2 * ((1 - self.alpha) * errG_fool + # self.alpha * errG_color)
             errG.backward()
 
             # Update G
