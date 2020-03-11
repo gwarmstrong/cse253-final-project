@@ -44,6 +44,8 @@ numpy
 pillow
 pandas
 click
+pytorch-msssim
+scikit-image
 ```
 
 See the [torch page](https://pytorch.org/get-started/locally/) on installation.
