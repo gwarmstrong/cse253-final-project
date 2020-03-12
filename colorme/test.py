@@ -55,7 +55,6 @@ def eval_test(config_path, model_path):
     # # TODO may want to figure out a way to make this more general
     # input_dimensions = (1, 1, image_size, image_size)
     # generator_kwargs = {'inputDimensions': input_dimensions}
-    # logdir = config.get("logdir", os.path.join(os.curdir, 'logs'))
 
     if random_seed is not None:
         torch.manual_seed(random_seed)
@@ -95,6 +94,9 @@ def eval_test(config_path, model_path):
         X_color, disc_real = model.forward(X_color, train='none', skip_generator=True)
 
         g_loss = model.Gcriterion(X_fake, X_color)
+
+        # TODO: wtf is an ssim?
+        # TODO: Need to check that these inputs are correctly shaped, oriented.
         ssim_loss = ssim.forward(X_fake, X_color)
 
         # Ehh, Dcriterion isn't super informative
@@ -112,6 +114,16 @@ def eval_test(config_path, model_path):
         print("Avg SSIM_LOSS: ", total_ssim_loss / total_processed)
         print("Avg GLoss: ", total_g_loss / total_processed)
 
+        # Delta E
+        # Inception Score
+        # Fix SSIM
+        # PSNR
+        # Disc Real on Real
+        # Disc Fake on Real
+        # Disc Real on Fake
+        # Disc Fake on Fake
+        
+
         print(total_processed, "/", len(test_dataloader))
         # print("---X_FAKE:---")
         # print(X_fake.shape)
@@ -120,6 +132,3 @@ def eval_test(config_path, model_path):
         # print("---DISC-REAL:---")
         # print(len(disc_real))
 
-
-        # TODO: wtf is an ssim?
-        # TODO: Need to check that these inputs are correctly shaped, oriented.
