@@ -6,9 +6,26 @@ from colorme.training import load_config, criterions, SSIM_Loss
 
 
 def load_model(model_path, use_gpu):
-    checkpoint = torch.load(model_path)
+    # Augh...  what is in this checkpoint object that crashes?
+    if not use_gpu:
+        checkpoint = torch.load(model_path, torch.device('cpu'))
 
-    model = checkpoint['model_type'](checkpoint['model_args'])
+    model_args = checkpoint['model_args']
+
+    # TODO: This. SUUUUUUUUUUUUUUCKS.
+    n_epochs = model_args.pop('n_epochs')
+    lr = model_args.pop('lr')
+    logdir = model_args.pop('logdir')
+    summary_interval = model_args.pop('summary_interval')
+
+    model_args.pop("self")  # TODO: WHAT I DONT EVEN
+    model_args.pop("__class__")  # TODO: ARE YOU SERIOUS RIGHT NOW?
+    model_args["use_gpu"] = use_gpu  # TODO: I swear...
+    print("-----")
+    print(model_args)
+
+    model = checkpoint['model_type'](n_epochs, lr, logdir, summary_interval,
+                                     **model_args)
     model.load_state_dict(checkpoint['state_dict'])
 
     model.use_gpu = use_gpu    # TODO This feels not particularly robust
@@ -26,20 +43,17 @@ def eval_test(config_path, model_path):
     # TODO these should be sorted in the order they're called
     test_data = config["test_data"]
     random_seed = config.get("random_seed", None)
-    image_size = config.get("image_size", None)
     batch_size = config.get("batch_size", 1)
     eval_mode = config.get("eval_mode", True)
     use_gpu = config.get("use_gpu", torch.cuda.is_available())
-    generator_criterion = config.get("generator_criterion", None)
-    if generator_criterion is not None:
-        generator_criterion = criterions[generator_criterion]()
+
     # 0 is default dataloader value for num_workers
     num_workers = config.get("num_workers", 0)
 
-    # TODO may want to figure out a way to make this more general
-    input_dimensions = (1, 1, image_size, image_size)
-    generator_kwargs = {'inputDimensions': input_dimensions}
-    logdir = config.get("logdir", os.path.join(os.curdir, 'logs'))
+    # # TODO may want to figure out a way to make this more general
+    # input_dimensions = (1, 1, image_size, image_size)
+    # generator_kwargs = {'inputDimensions': input_dimensions}
+    # logdir = config.get("logdir", os.path.join(os.curdir, 'logs'))
 
     if random_seed is not None:
         torch.manual_seed(random_seed)
