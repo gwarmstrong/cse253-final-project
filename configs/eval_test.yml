@@ -1,0 +1,16 @@
+# test data file with filepaths
+test_data: "train_Tiny_ImageNet.csv"
+
+# seed to use for random state
+random_seed: 725
+
+# Batch size during testing
+batch_size: 32
+
+# Eval Mode during testing (Should -probably- be True)
+eval_mode: True
+
+# number of workers for dataloader
+num_workers: 4
+
+logdir: './logs/baseline_frst_config_gpu_test'
