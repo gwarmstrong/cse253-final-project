@@ -48,7 +48,7 @@ def load_model(model_path, use_gpu):
 
 
 def tensor_to_pil(rgb0to1, index_in_batch):
-    img = rgb0to1
+    img = rgb0to1.cpu()
     img = img.data[index_in_batch].numpy()
     img = np.transpose(img, (1, 2, 0))
     img = img * 255
