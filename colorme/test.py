@@ -76,7 +76,7 @@ def eval_test(config_path, model_path):
         model = model.eval()
 
 
-    for i, (X_gray, X_color) in cuda_enumerate(test_dataloader):
+    for i, (X_gray, X_color) in enumerate(test_dataloader):
         fake_label = torch.full((X_color.size(0),), model.fake_label)
         real_label = torch.full((X_color.size(0),), model.real_label)
         if use_gpu:
