@@ -8,6 +8,15 @@ from pytorch_msssim import ssim as py_ssim
 from SSIM_PIL import compare_ssim as pil_ssim
 import numpy as np
 
+
+# Note: psnr is undefined when images are identical, so we will put
+# a 0 into the output tensor for each pair of images where this occurs.
+def psnr(tensor1, tensor2, PIX_MAX):
+    mse = torch.mean((tensor1 - tensor2) ** 2, dim=(1,2,3))
+    psnr = 20 * torch.log10(PIX_MAX / torch.sqrt(mse))
+    return torch.where(mse == 0, torch.full(mse.shape, 0), psnr)
+
+
 def load_model(model_path, use_gpu):
     # Augh...  what is in this checkpoint object that crashes?
     if not use_gpu:
@@ -92,14 +101,16 @@ def _load(config_path, model_path):
 
     return model, test_dataloader, test_dataset, use_gpu
 
-def eval_test(config_path, model_path, show_image=False):
 
+def eval_test(config_path, model_path, show_image=False):
     model, test_dataloader, test_dataset, use_gpu = _load(config_path, model_path)
 
     total_processed = 0
     total_disc_real = 0
     total_disc_fake = 0
     total_ssim = 0
+    total_psnr = 0
+    total_psnr_count = 0 # fails to calculate if images are identical
     total_g_loss = 0
 
     for i, (X_gray, X_color) in enumerate(test_dataloader):
@@ -120,6 +131,10 @@ def eval_test(config_path, model_path, show_image=False):
         X_fake_not_norm = test_dataset.invert_transforms(X_fake)
         X_color_not_norm = test_dataset.invert_transforms(X_color)
 
+        psnr_val = psnr(X_fake_not_norm, X_color_not_norm, 1.0)
+
+        # Note, if we go with only the py_ssim version of ssim,
+        # we can batch and lose the for loop.
         for i in range(X_fake.shape[0]):
             fake_img = tensor_to_pil(X_fake_not_norm, i)
             real_img = tensor_to_pil(X_color_not_norm, i)
@@ -144,16 +159,24 @@ def eval_test(config_path, model_path, show_image=False):
         total_disc_real += disc_real.sum()
         total_disc_fake += disc_fake.sum()
         total_g_loss += g_loss.sum()
+        total_psnr_count += (psnr_val != 0).sum()
+        total_psnr += psnr_val.sum()
+
+        # print(psnr_val)
 
         print("Avg Disc Sigmoid on REAL: ", total_disc_real / total_processed)
         print("Avg Disc Sigmoid on FAKE: ", total_disc_fake / total_processed)
         print("Avg PIL SSIM: ", total_ssim / total_processed)
+        print("Avg psnr: ", total_psnr / total_psnr_count)
         print("Avg GLoss: ", total_g_loss / total_processed)
 
+        if total_psnr_count != total_processed:
+            print("Identical Images: ", total_processed - total_psnr_count)
+        # Inception Score NOT DOING
+        # Fix SSIM CHECK
+        # PSNR CHECK
         # Delta E
-        # Inception Score
-        # Fix SSIM
-        # PSNR
+
         # Disc Real on Real
         # Disc Fake on Real
         # Disc Real on Fake
