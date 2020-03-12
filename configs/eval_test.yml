@@ -1,5 +1,5 @@
 # test data file with filepaths
-test_data: "train_Tiny_ImageNet.csv"
+test_data: "test_Tiny_ImageNet.csv"
 
 # seed to use for random state
 random_seed: 725
@@ -12,5 +12,3 @@ eval_mode: True
 
 # number of workers for dataloader
 num_workers: 4
-
-logdir: './logs/baseline_frst_config_gpu_test'

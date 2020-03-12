@@ -63,6 +63,16 @@ class ImageDataset(Dataset):
             self.color = color_space
         self.normal = normalize
 
+        # To inverse: negate mean, divide by std
+        self.gray_norm = transforms.Normalize(
+            mean=[0.458971],
+            std=[0.246539])
+        self.lab_normalize = transforms.Normalize(
+            mean=[47.8360,  2.6550,  8.9181],
+            std=[26.8397, 13.3277, 18.7259])
+        self.rgb_normalize = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225])
 
     def __getitem__(self, idx):
         """
@@ -85,6 +95,9 @@ class ImageDataset(Dataset):
             idx = idx.tolist()
 
         img_name = self.data.iloc[idx, 0]
+        return self.get_image(img_name)
+
+    def get_image(self, img_name):
         im_init = Image.open(img_name).convert('RGB')
         img = im_init.copy()
 
@@ -97,25 +110,26 @@ class ImageDataset(Dataset):
         gray_tensor = grayscale(img.copy())
 
         if self.normal:
-            gray_norm = transforms.Normalize(mean=[0.458971], std=[0.246539])
-            gray_tensor = gray_norm(gray_tensor)
+            gray_tensor = self.gray_norm(gray_tensor)
 
         if self.color == 'LAB':
             img = color.rgb2lab(img).transpose(2, 0, 1).astype(np.float32)
             img_tensor = torch.from_numpy(img)
             if self.normal:
-                lab_normalize = transforms.Normalize(mean=[47.8360,  2.6550,  8.9181], std=[26.8397, 13.3277, 18.7259])
-                img_tensor = lab_normalize(img_tensor)
+                img_tensor = self.lab_normalize(img_tensor)
 
         elif self.color == 'RGB':
             tensor = transforms.ToTensor()
             img_tensor = tensor(img)
             if self.normal:
-                rgb_normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-                img_tensor = rgb_normalize(img_tensor)
+                img_tensor = self.rgb_normalize(img_tensor)
 
         return gray_tensor, img_tensor
 
+    def invert_transforms(self, img_batch):
+        if self.normal:
+            return unnormalize_batch(img_batch, color_space=self.color)
+        return img_batch
 
     def __len__(self):
         """

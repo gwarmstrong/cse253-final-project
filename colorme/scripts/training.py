@@ -2,7 +2,7 @@ import sys
 import click
 import logging
 from colorme.training import train_baseline, train_baseline_gan
-from colorme.test import eval_test
+from colorme.test import eval_test, show_results
 
 log_levels = {
     'debug' : logging.DEBUG,
@@ -57,3 +57,14 @@ def eval_gan(config, model, log, logstream):
     level = log_levels.get(log, logging.ERROR)
     logging.basicConfig(stream=logstream, level=level)
     eval_test(config_path=config, model_path=model)
+
+@test.command()
+@click.option('--config', type=click.Path(exists=True))
+@click.option('--model', type=click.Path(exists=True))
+@click.option('--image', type=click.Path(exists=True))
+@click.option('--log', default=None)
+@click.option('--logstream', default=sys.stdout)
+def show_gan(config, model, image, log, logstream):
+    level = log_levels.get(log, logging.ERROR)
+    logging.basicConfig(stream=logstream, level=level)
+    show_results(config_path=config, model_path=model, image_path=image)

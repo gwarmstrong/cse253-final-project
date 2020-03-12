@@ -1,9 +1,12 @@
 import os
 import torch
+from PIL import Image
 from torch.utils.data import DataLoader
 from colorme.dataloader import ImageDataset
 from colorme.training import load_config, criterions, SSIM_Loss
-
+from pytorch_msssim import ssim as py_ssim
+from SSIM_PIL import compare_ssim as pil_ssim
+import numpy as np
 
 def load_model(model_path, use_gpu):
     # Augh...  what is in this checkpoint object that crashes?
@@ -36,10 +39,25 @@ def load_model(model_path, use_gpu):
 
     # TODO:  checkpoints have a Gstate_dict and a Dstate_dict and a Goptimizer
     #  and a Doptimizer, do I need to deal with this?
+
+    if "normalize" not in model_args:
+        print("WARNING: normalize not specified, assuming:", model.normalize)
+    if "color_space" not in model_args:
+        print("WARNING: color_space not specified, assuming: ", model.color_space)
     return model
 
 
-def eval_test(config_path, model_path):
+def tensor_to_pil(rgb0to1, index_in_batch):
+    img = rgb0to1
+    img = img.data[index_in_batch].numpy()
+    img = np.transpose(img, (1, 2, 0))
+    img = img * 255
+    img = img.astype(np.uint8)
+    img = Image.fromarray(img)
+    return img
+
+
+def _load(config_path, model_path):
     config = load_config(config_path)
 
     # TODO these should be sorted in the order they're called
@@ -52,35 +70,38 @@ def eval_test(config_path, model_path):
     # 0 is default dataloader value for num_workers
     num_workers = config.get("num_workers", 0)
 
-    # # TODO may want to figure out a way to make this more general
-    # input_dimensions = (1, 1, image_size, image_size)
-    # generator_kwargs = {'inputDimensions': input_dimensions}
-
     if random_seed is not None:
         torch.manual_seed(random_seed)
 
-    test_dataset = ImageDataset(path_file=test_data, random_seed=random_seed)
+    model = load_model(model_path, use_gpu)
+
+    test_dataset = ImageDataset(path_file=test_data, random_seed=random_seed,
+                                color_space=model.color_space,
+                                normalize=model.normalize)
     test_dataloader = DataLoader(
         test_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=False,
         num_workers=num_workers,
     )
-
-    model = load_model(model_path, use_gpu)
 
     if eval_mode:
         # TODO: This switches mode of dropout and batchnorm, but
         #  we might also want to swap batchnorm for instance norm?
         model = model.eval()
 
+    return model, test_dataloader, test_dataset, use_gpu
+
+def eval_test(config_path, model_path, show_image=False):
+
+    model, test_dataloader, test_dataset, use_gpu = _load(config_path, model_path)
+
     total_processed = 0
     total_disc_real = 0
     total_disc_fake = 0
-    total_ssim_loss = 0
+    total_ssim = 0
     total_g_loss = 0
 
-    ssim = SSIM_Loss()
     for i, (X_gray, X_color) in enumerate(test_dataloader):
         fake_label = torch.full((X_color.size(0),), model.fake_label)
         real_label = torch.full((X_color.size(0),), model.real_label)
@@ -95,23 +116,37 @@ def eval_test(config_path, model_path):
 
         g_loss = model.Gcriterion(X_fake, X_color)
 
-        # TODO: wtf is an ssim?
-        # TODO: Need to check that these inputs are correctly shaped, oriented.
-        ssim_loss = ssim.forward(X_fake, X_color)
+        # print(X_fake.shape)
+        X_fake_not_norm = test_dataset.invert_transforms(X_fake)
+        X_color_not_norm = test_dataset.invert_transforms(X_color)
 
-        # Ehh, Dcriterion isn't super informative
-        # d_loss_real = model.Dcriterion(disc_fake, fake_label)
-        # d_loss_fake = model.Dcriterion(disc_real, real_label)
+        fake_img = tensor_to_pil(X_fake_not_norm, 0)
+        real_img = tensor_to_pil(X_color_not_norm, 0)
 
+        if show_image:
+            fake_img.show()
+            real_img.show()
+            input()
+
+        # TODO:
+        #  oh what a nightmare, py_ssim and pil_ssim don't agree.
+        #  I'm taking PIL ssim since I know what inputs it expects.
+        py_ssim_val = py_ssim(X_fake_not_norm[0:1], X_color_not_norm[0:1])
+        pil_ssim_val = pil_ssim(fake_img, real_img)
+
+        # print("Py ssim: ", py_ssim_val)
+        # print("PIL ssim: ", pil_ssim_val)
+
+        ssim_val = pil_ssim_val
         total_processed += X_fake.shape[0]
         total_disc_real += disc_real.sum()
         total_disc_fake += disc_fake.sum()
-        total_ssim_loss += ssim_loss
+        total_ssim += ssim_val
         total_g_loss += g_loss.sum()
 
         print("Avg Disc Sigmoid on REAL: ", total_disc_real / total_processed)
         print("Avg Disc Sigmoid on FAKE: ", total_disc_fake / total_processed)
-        print("Avg SSIM_LOSS: ", total_ssim_loss / total_processed)
+        print("Avg PIL SSIM: ", total_ssim / total_processed)
         print("Avg GLoss: ", total_g_loss / total_processed)
 
         # Delta E
@@ -122,7 +157,6 @@ def eval_test(config_path, model_path):
         # Disc Fake on Real
         # Disc Real on Fake
         # Disc Fake on Fake
-        
 
         print(total_processed, "/", len(test_dataloader))
         # print("---X_FAKE:---")
@@ -132,3 +166,31 @@ def eval_test(config_path, model_path):
         # print("---DISC-REAL:---")
         # print(len(disc_real))
 
+
+def show_results(config_path, model_path, image_path=None):
+    if not image_path:
+        eval_test(config_path, model_path, show_image=True)
+        return
+
+    model, test_dataloader, test_dataset, use_gpu = _load(config_path, model_path)
+    X_gray, X_color = test_dataset.get_image(image_path)
+
+    X_gray = torch.stack([X_gray], dim=0)
+    X_color = torch.stack([X_color], dim=0)
+
+    if use_gpu:
+        X_gray = X_gray.cuda()
+        X_color = X_color.cuda()
+
+    X_fake, disc_fake = model.forward(X_gray, train='none', skip_generator=False)
+
+
+    X_fake_not_norm = test_dataset.invert_transforms(X_fake)
+    X_color_not_norm = test_dataset.invert_transforms(X_color)
+
+    fake_img = tensor_to_pil(X_fake_not_norm, 0)
+    real_img = tensor_to_pil(X_color_not_norm, 0)
+
+    fake_img.show()
+    real_img.show()
+    return
