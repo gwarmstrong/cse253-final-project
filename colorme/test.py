@@ -86,7 +86,7 @@ def eval_test(config_path, model_path):
             X_color = X_color.cuda()
 
         X_fake, disc_fake = model.forward(X_gray, train='none', skip_generator=False)
-        disc_real = model.forward(X_color, train='none', skip_generator=True)
+        X_color, disc_real = model.forward(X_color, train='none', skip_generator=True)
 
         g_loss = model.Gcriterion(X_fake, X_color)
 
@@ -94,9 +94,12 @@ def eval_test(config_path, model_path):
         # d_loss_real = model.Dcriterion(disc_fake, fake_label)
         # d_loss_fake = model.Dcriterion(disc_real, real_label)
 
+        print("---X_FAKE:---")
         print(X_fake.shape)
-        print(disc_fake.shape)
-        print(disc_real.shape)
+        print("---DISC-FAKE:---")
+        print(disc_fake)
+        print("---DISC-REAL:---")
+        print(len(disc_real))
 
         ssim = SSIM_Loss()
 
