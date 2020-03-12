@@ -75,7 +75,13 @@ def eval_test(config_path, model_path):
         #  we might also want to swap batchnorm for instance norm?
         model = model.eval()
 
+    total_processed = 0
+    total_disc_real = 0
+    total_disc_fake = 0
+    total_ssim_loss = 0
+    total_g_loss = 0
 
+    ssim = SSIM_Loss()
     for i, (X_gray, X_color) in enumerate(test_dataloader):
         fake_label = torch.full((X_color.size(0),), model.fake_label)
         real_label = torch.full((X_color.size(0),), model.real_label)
@@ -89,19 +95,31 @@ def eval_test(config_path, model_path):
         X_color, disc_real = model.forward(X_color, train='none', skip_generator=True)
 
         g_loss = model.Gcriterion(X_fake, X_color)
+        ssim_loss = ssim.forward(X_fake, X_color)
 
         # Ehh, Dcriterion isn't super informative
         # d_loss_real = model.Dcriterion(disc_fake, fake_label)
         # d_loss_fake = model.Dcriterion(disc_real, real_label)
 
-        print("---X_FAKE:---")
-        print(X_fake.shape)
-        print("---DISC-FAKE:---")
-        print(disc_fake)
-        print("---DISC-REAL:---")
-        print(len(disc_real))
+        total_processed += X_fake.shape[0]
+        total_disc_real += disc_real.sum()
+        total_disc_fake += disc_fake.sum()
+        total_ssim_loss += ssim_loss
+        total_g_loss += g_loss.sum()
 
-        ssim = SSIM_Loss()
+        print("Avg Disc Sigmoid on REAL: ", total_disc_real / total_processed)
+        print("Avg Disc Sigmoid on FAKE: ", total_disc_fake / total_processed)
+        print("Avg SSIM_LOSS: ", total_ssim_loss / total_processed)
+        print("Avg GLoss: ", total_g_loss / total_processed)
+
+        print(total_processed, "/", len(test_dataloader))
+        # print("---X_FAKE:---")
+        # print(X_fake.shape)
+        # print("---DISC-FAKE:---")
+        # print(disc_fake)
+        # print("---DISC-REAL:---")
+        # print(len(disc_real))
+
 
         # TODO: wtf is an ssim?
-        ssim.forward(X_fake, X_color)
+        # TODO: Need to check that these inputs are correctly shaped, oriented.
