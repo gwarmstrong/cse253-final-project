@@ -9,6 +9,8 @@ def load_model(model_path, use_gpu):
     # Augh...  what is in this checkpoint object that crashes?
     if not use_gpu:
         checkpoint = torch.load(model_path, torch.device('cpu'))
+    else:
+        checkpoint = torch.load(model_path)
 
     model_args = checkpoint['model_args']
 
