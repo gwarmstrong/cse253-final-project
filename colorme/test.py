@@ -120,28 +120,29 @@ def eval_test(config_path, model_path, show_image=False):
         X_fake_not_norm = test_dataset.invert_transforms(X_fake)
         X_color_not_norm = test_dataset.invert_transforms(X_color)
 
-        fake_img = tensor_to_pil(X_fake_not_norm, 0)
-        real_img = tensor_to_pil(X_color_not_norm, 0)
+        for i in range(X_fake.shape[0]):
+            fake_img = tensor_to_pil(X_fake_not_norm, i)
+            real_img = tensor_to_pil(X_color_not_norm, i)
 
-        if show_image:
-            fake_img.show()
-            real_img.show()
-            input()
+            if show_image:
+                fake_img.show()
+                real_img.show()
+                input()
 
-        # TODO:
-        #  oh what a nightmare, py_ssim and pil_ssim don't agree.
-        #  I'm taking PIL ssim since I know what inputs it expects.
-        py_ssim_val = py_ssim(X_fake_not_norm[0:1], X_color_not_norm[0:1])
-        pil_ssim_val = pil_ssim(fake_img, real_img)
+            # TODO:
+            #  oh what a nightmare, py_ssim and pil_ssim don't agree.
+            #  I'm taking PIL ssim since I know what inputs it expects.
+            py_ssim_val = py_ssim(X_fake_not_norm[i:i+1], X_color_not_norm[i:i+1])
+            pil_ssim_val = pil_ssim(fake_img, real_img)
 
-        # print("Py ssim: ", py_ssim_val)
-        # print("PIL ssim: ", pil_ssim_val)
+            # print("Py ssim: ", py_ssim_val)
+            # print("PIL ssim: ", pil_ssim_val)
+            ssim_val = pil_ssim_val
+            total_ssim += ssim_val
 
-        ssim_val = pil_ssim_val
         total_processed += X_fake.shape[0]
         total_disc_real += disc_real.sum()
         total_disc_fake += disc_fake.sum()
-        total_ssim += ssim_val
         total_g_loss += g_loss.sum()
 
         print("Avg Disc Sigmoid on REAL: ", total_disc_real / total_processed)
