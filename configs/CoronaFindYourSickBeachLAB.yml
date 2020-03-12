@@ -1,0 +1,60 @@
+# train data file with filepaths
+train_data: "colorme/train_Tiny_ImageNet_no_grayscale.csv"
+
+# val data file with filepaths
+val_data: "colorme/test_Tiny_ImageNet_no_grayscale.csv"
+
+# subset the data to this many samples (-1 uses all)
+subset_size: -1
+
+# Batch size during training
+batch_size: 32
+
+# number of workers for dataloader
+num_workers: 4
+
+# Spatial size of training images. All images will be cropped to this
+#   size using a transformer.
+image_size: 64
+
+# seed to use for random state
+random_seed: 725
+
+# Number of training epochs
+num_epochs: 4
+
+# Learning rate for optimizers
+lr: 0.0002
+
+# how many iterations since the last update to wait before printing out training stats
+summary_interval: 10
+
+# how many iterations since the last update to wait before printing out validation stats
+validation_interval: 100
+
+# string corresponding to type of generator to use
+generator: 'FCNGenerator'
+
+logdir: './logs/L1_GAN_NewDiscrimBack_BANE3'
+
+use_gpu: True
+
+generator_criterion: 'L1Loss'
+
+Gbeta1: 0.5
+
+Gbeta2: 0.999
+
+Dbeta1: 0.5
+
+Dbeta2: 0.999
+
+Dlr: 0.0002
+
+Glr: 0.0002
+
+normalize: True
+
+generator_activation: "Identity"
+
+color_space: "LAB"
