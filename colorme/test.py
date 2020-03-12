@@ -20,9 +20,9 @@ def load_model(model_path, use_gpu):
     logdir = model_args.pop('logdir')
     summary_interval = model_args.pop('summary_interval')
 
-    model_args.pop("self")  # TODO: WHAT I DONT EVEN
-    model_args.pop("__class__")  # TODO: ARE YOU SERIOUS RIGHT NOW?
-    model_args["use_gpu"] = use_gpu  # TODO: I swear...
+    # model_args.pop("self")  # TODO: WHAT I DONT EVEN
+    # model_args.pop("__class__")  # TODO: ARE YOU SERIOUS RIGHT NOW?
+    # model_args["use_gpu"] = use_gpu  # TODO: I swear...
     print("-----")
     print(model_args)
 
