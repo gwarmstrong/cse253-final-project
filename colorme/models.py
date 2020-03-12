@@ -126,7 +126,8 @@ class ColorMeModelMixin:
         return keep_colorized
 
     def save_checkpoint(self, state, is_best):
-        filename = os.path.join(self.logdir, f"model_{state['model_type']}__"
+        filename = os.path.join(self.logdir, f"model_"
+                                             f"{state['model_type'].__name__}__"
                                              f"step_{state['global_step']}.pth"
                                 )
         torch.save(state, filename)
@@ -166,6 +167,9 @@ class BaselineDCN(nn.Module, ColorMeModelMixin):
         ...     criterion=nn.MSELoss(), use_gpu=False)
         """
         self.saved_args = locals()
+        self.saved_args.pop("self")
+        self.saved_args.pop("__class__")
+        self.saved_args.pop("use_gpu")
         super().__init__()
         self.n_epochs = n_epochs
         self.lr = lr
@@ -301,7 +305,6 @@ class BaselineDCN(nn.Module, ColorMeModelMixin):
             'model_args': self.saved_args,
             'val_loss': val_loss,
             'state_dict': self.state_dict(),
-            'optimizer': optimizer.state_dict(),
         }
         return checkpoint
 
@@ -348,6 +351,9 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
 
         """
         self.saved_args = locals()
+        self.saved_args.pop("self")
+        self.saved_args.pop("__class__")
+        self.saved_args.pop("use_gpu")
         super().__init__()
         self.n_epochs = n_epochs
         self.lr = lr
@@ -615,9 +621,5 @@ class BaselineDCGAN(nn.Module, ColorMeModelMixin):
             'model_args': self.saved_args,
             'val_loss': val_loss,
             'state_dict': self.state_dict(),
-            'Gstate_dict': self.generator.state_dict(),
-            'Dstate_dict': self.discriminator.state_dict(),
-            'Goptimizer': Goptimizer.state_dict(),
-            'Doptimizer': Doptimizer.state_dict(),
         }
         return checkpoint
