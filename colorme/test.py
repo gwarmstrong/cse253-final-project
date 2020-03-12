@@ -94,9 +94,9 @@ def eval_test(config_path, model_path):
         # d_loss_real = model.Dcriterion(disc_fake, fake_label)
         # d_loss_fake = model.Dcriterion(disc_real, real_label)
 
-        print(X_fake.shape())
-        print(disc_fake.shape())
-        print(disc_real.shape())
+        print(X_fake.shape)
+        print(disc_fake.shape)
+        print(disc_real.shape)
 
         ssim = SSIM_Loss()
 
