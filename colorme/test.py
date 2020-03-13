@@ -77,8 +77,6 @@ def tensor_to_lab(rgb0to1):
     img = img.numpy()
     img = img.transpose(0, 3, 2, 1)  # B W H C
     img = img * 255
-    print(np.min(img))
-    print(np.max(img))
     img = img.astype(np.uint8)
     img = color.rgb2lab(img)
     return img
@@ -164,6 +162,12 @@ def eval_test(config_path, model_path, show_image=False):
         mean_delta_76 = np.mean(delta_e_76, axis=(1, 2))
         mean_delta_94 = np.mean(delta_e_94, axis=(1, 2))
         mean_delta_2000 = np.mean(delta_e_2000, axis=(1, 2))
+
+        if np.isnan(mean_delta_94).any():
+            print("ERROR, COMPUTED NAN FOR BATCH:", batch_index)
+            img_name = test_dataset.data.iloc[batch_index, 0]
+            print("Maybe on img_name???", img_name)
+            return
 
         # print(lab_fake)
 
