@@ -11,10 +11,14 @@ import numpy as np
 
 # Note: psnr is undefined when images are identical, so we will put
 # a 0 into the output tensor for each pair of images where this occurs.
-def psnr(tensor1, tensor2, PIX_MAX):
+def psnr(tensor1, tensor2, PIX_MAX, use_gpu):
     mse = torch.mean((tensor1 - tensor2) ** 2, dim=(1,2,3))
     psnr = 20 * torch.log10(PIX_MAX / torch.sqrt(mse))
-    return torch.where(mse == 0, torch.full(mse.shape, 0), psnr)
+
+    zeros = torch.full(mse.shape, 0)
+    if use_gpu:
+        zeros = zeros.cuda()
+    return torch.where(mse == 0, zeros, psnr)
 
 
 def load_model(model_path, use_gpu):
