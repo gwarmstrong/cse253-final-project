@@ -7,6 +7,8 @@ from colorme.training import load_config, criterions, SSIM_Loss
 from pytorch_msssim import ssim as py_ssim
 from SSIM_PIL import compare_ssim as pil_ssim
 import numpy as np
+from skimage import color
+
 
 
 # Note: psnr is undefined when images are identical, so we will put
@@ -69,6 +71,16 @@ def tensor_to_pil(rgb0to1, index_in_batch):
     img = Image.fromarray(img)
     return img
 
+def tensor_to_lab(rgb0to1):
+    # INPUT: B C H W
+    img = rgb0to1.cpu()
+    img = img.numpy()
+    img = img.transpose(0, 3, 2, 1)  # B W H C
+    img = img * 255
+    img = img.astype(np.uint8)
+    img = color.rgb2lab(img)
+    return img
+
 
 def _load(config_path, model_path):
     config = load_config(config_path)
@@ -116,6 +128,9 @@ def eval_test(config_path, model_path, show_image=False):
     total_psnr = 0
     total_psnr_count = 0 # fails to calculate if images are identical
     total_g_loss = 0
+    total_deltaE76 = 0
+    total_deltaE94 = 0
+    total_deltaE2000 = 0
 
     for i, (X_gray, X_color) in enumerate(test_dataloader):
         fake_label = torch.full((X_color.size(0),), model.fake_label)
@@ -137,6 +152,20 @@ def eval_test(config_path, model_path, show_image=False):
 
         psnr_val = psnr(X_fake_not_norm, X_color_not_norm, 1.0, use_gpu)
 
+        lab_fake = tensor_to_lab(X_fake_not_norm)
+        lab_real = tensor_to_lab(X_color_not_norm)
+
+        delta_e_76 = color.deltaE_cie76(lab_fake, lab_real)
+        delta_e_94 = color.deltaE_ciede94(lab_fake, lab_real)
+        delta_e_2000 = color.deltaE_ciede2000(lab_fake, lab_real)
+
+        mean_delta_76 = np.mean(delta_e_76, axis=(1, 2))
+        mean_delta_94 = np.mean(delta_e_94, axis=(1, 2))
+        mean_delta_2000 = np.mean(delta_e_2000, axis=(1, 2))
+
+        # print(lab_fake)
+
+        print("PSNR Tensor: ", psnr_val)
         # Note, if we go with only the py_ssim version of ssim,
         # we can batch and lose the for loop.
         for i in range(X_fake.shape[0]):
@@ -159,20 +188,31 @@ def eval_test(config_path, model_path, show_image=False):
             ssim_val = pil_ssim_val
             total_ssim += ssim_val
 
+            # Computes exactly the same thing as the range 0-1 batch version, so psnr looks good.
+            # psnr2_val = psnr(X_fake_not_norm[i:i+1] * 255, X_color_not_norm[i:i+1] * 255, 255, use_gpu)
+            # print("PSNR_INDIV", psnr2_val)
+
+
         total_processed += X_fake.shape[0]
         total_disc_real += disc_real.sum()
         total_disc_fake += disc_fake.sum()
         total_g_loss += g_loss.sum()
         total_psnr_count += (psnr_val != 0).sum()
         total_psnr += psnr_val.sum()
+        total_deltaE76 += mean_delta_76.sum()
+        total_deltaE94 += mean_delta_94.sum()
+        total_deltaE2000 += mean_delta_2000.sum()
 
         # print(psnr_val)
 
         print("Avg Disc Sigmoid on REAL: ", total_disc_real / total_processed)
         print("Avg Disc Sigmoid on FAKE: ", total_disc_fake / total_processed)
         print("Avg PIL SSIM: ", total_ssim / total_processed)
-        print("Avg psnr: ", total_psnr / total_psnr_count)
+        print("Avg psnr: ", total_psnr / total_psnr_count, "dB")
         print("Avg GLoss: ", total_g_loss / total_processed)
+        print("Avg delta E 76: ", total_deltaE76 / total_processed)
+        print("Avg delta E 94: ", total_deltaE94 / total_processed)
+        print("Avg delta E 2000: ", total_deltaE2000 / total_processed)
 
         if total_psnr_count != total_processed:
             print("Identical Images: ", total_processed - total_psnr_count)
