@@ -132,7 +132,7 @@ def eval_test(config_path, model_path, show_image=False):
     total_deltaE94 = 0
     total_deltaE2000 = 0
 
-    for i, (X_gray, X_color) in enumerate(test_dataloader):
+    for batch_index, (X_gray, X_color) in enumerate(test_dataloader):
         fake_label = torch.full((X_color.size(0),), model.fake_label)
         real_label = torch.full((X_color.size(0),), model.real_label)
         if use_gpu:
@@ -226,7 +226,7 @@ def eval_test(config_path, model_path, show_image=False):
         # Disc Real on Fake
         # Disc Fake on Fake
 
-        print(total_processed, i, "/", len(test_dataloader))
+        print(total_processed, batch_index, "/", len(test_dataloader))
         # print("---X_FAKE:---")
         # print(X_fake.shape)
         # print("---DISC-FAKE:---")
