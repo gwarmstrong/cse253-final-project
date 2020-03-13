@@ -135,7 +135,7 @@ def eval_test(config_path, model_path, show_image=False):
         X_fake_not_norm = test_dataset.invert_transforms(X_fake)
         X_color_not_norm = test_dataset.invert_transforms(X_color)
 
-        psnr_val = psnr(X_fake_not_norm, X_color_not_norm, 1.0)
+        psnr_val = psnr(X_fake_not_norm, X_color_not_norm, 1.0, use_gpu)
 
         # Note, if we go with only the py_ssim version of ssim,
         # we can batch and lose the for loop.
