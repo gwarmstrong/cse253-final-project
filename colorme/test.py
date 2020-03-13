@@ -165,7 +165,7 @@ def eval_test(config_path, model_path, show_image=False):
 
         # print(lab_fake)
 
-        print("PSNR Tensor: ", psnr_val)
+        # print("PSNR Tensor: ", psnr_val)
         # Note, if we go with only the py_ssim version of ssim,
         # we can batch and lose the for loop.
         for i in range(X_fake.shape[0]):
@@ -226,7 +226,7 @@ def eval_test(config_path, model_path, show_image=False):
         # Disc Real on Fake
         # Disc Fake on Fake
 
-        print(total_processed, "/", len(test_dataloader))
+        print(total_processed, i, "/", len(test_dataloader))
         # print("---X_FAKE:---")
         # print(X_fake.shape)
         # print("---DISC-FAKE:---")
