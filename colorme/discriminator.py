@@ -63,10 +63,9 @@ class PatchGANDiscriminator(nn.Module):
         # print(x)
         # Compute to geometric mean instead of the arithmetic mean (bcuz these are probabilities)
         num_patches = x.shape[2] * x.shape[3]
-        x = torch.prod(x, 2, keepdim=True)
-        x = torch.prod(x, 3, keepdim=True)
-        x = torch.pow(x, 1.0 / num_patches)
-        # print(x.shape)
+        x = torch.log(x)
+        x = torch.mean(x, dim=(1, 2, 3), keepdim=True)
+        x = torch.exp(x)
         # print(x)
         # print("-----------")
         return x

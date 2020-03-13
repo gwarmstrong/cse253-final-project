@@ -184,7 +184,7 @@ class BaselineDCN(nn.Module, ColorMeModelMixin):
             criterion = nn.MSELoss()
         self.Gcriterion = criterion
         self.Goptimizer = Adam
-        self.Goptimzer_kwargs = {'lr': self.lr}
+        self.Goptimzer_kwargs = {'lr': self.lr, 'eps': 1e-07}
         self.validation_interval = validation_interval
         # TODO fix this if we want to include normalization here
         self.normalize = False
