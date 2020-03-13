@@ -77,6 +77,8 @@ def tensor_to_lab(rgb0to1):
     img = img.numpy()
     img = img.transpose(0, 3, 2, 1)  # B W H C
     img = img * 255
+    print(np.min(img))
+    print(np.max(img))
     img = img.astype(np.uint8)
     img = color.rgb2lab(img)
     return img
