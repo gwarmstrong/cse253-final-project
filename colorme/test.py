@@ -132,6 +132,9 @@ def eval_test(config_path, model_path, show_image=False):
     total_deltaE94 = 0
     total_deltaE2000 = 0
 
+    total_real_real = 0
+    total_fake_fake = 0
+
     for batch_index, (X_gray, X_color) in enumerate(test_dataloader):
         fake_label = torch.full((X_color.size(0),), model.fake_label)
         real_label = torch.full((X_color.size(0),), model.real_label)
@@ -210,6 +213,8 @@ def eval_test(config_path, model_path, show_image=False):
         total_deltaE76 += mean_delta_76.sum()
         total_deltaE94 += mean_delta_94.sum()
         total_deltaE2000 += mean_delta_2000.sum()
+        total_real_real += (disc_real > .5).sum()
+        total_fake_fake += (disc_fake < .5).sum()
 
         # print(psnr_val)
 
@@ -221,6 +226,8 @@ def eval_test(config_path, model_path, show_image=False):
         print("Avg delta E 76: ", total_deltaE76 / total_processed)
         print("Avg delta E 94: ", total_deltaE94 / total_processed)
         print("Avg delta E 2000: ", total_deltaE2000 / total_processed)
+        print("Correctly Identified Real: ", total_real_real, "/", total_processed)
+        print("Correctly Identified Fake: ", total_fake_fake, "/", total_processed)
 
         if total_psnr_count != total_processed:
             print("Identical Images: ", total_processed - total_psnr_count)
