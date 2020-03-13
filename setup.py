@@ -5,7 +5,7 @@ setup(name='colorme',
       description='Color me impressed!',
       packages=find_packages(),
       zip_safe=False,
-      install_requries=[
+      install_requires=[
             # TODO pin versions
             "torch>=1.4",
             "torchvision",
