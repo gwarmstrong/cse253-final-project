@@ -159,15 +159,17 @@ def eval_test(config_path, model_path, show_image=False):
         delta_e_94 = color.deltaE_ciede94(lab_fake, lab_real)
         delta_e_2000 = color.deltaE_ciede2000(lab_fake, lab_real)
 
-        mean_delta_76 = np.mean(delta_e_76, axis=(1, 2))
-        mean_delta_94 = np.mean(delta_e_94, axis=(1, 2))
-        mean_delta_2000 = np.mean(delta_e_2000, axis=(1, 2))
+        # TODO:  delta_e_94 has a (some?) nan pixels.
+        #  Need to track down if this is due to floating point or what.
+        mean_delta_76 = np.nanmean(delta_e_76, axis=(1, 2))
+        mean_delta_94 = np.nanmean(delta_e_94, axis=(1, 2))
+        mean_delta_2000 = np.nanmean(delta_e_2000, axis=(1, 2))
 
-        if np.isnan(mean_delta_94).any():
-            print("ERROR, COMPUTED NAN FOR BATCH:", batch_index)
-            img_name = test_dataset.data.iloc[batch_index, 0]
-            print("Maybe on img_name???", img_name)
-            return
+        # if np.isnan(mean_delta_94).any():
+        #     print("ERROR, COMPUTED NAN FOR BATCH:", batch_index)
+        #     img_name = test_dataset.data.iloc[batch_index, 0]
+        #     print("Maybe on img_name???", img_name)
+        #     return
 
         # print(lab_fake)
 
