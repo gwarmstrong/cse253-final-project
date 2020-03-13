@@ -30,6 +30,8 @@ def load_model(model_path, use_gpu):
     else:
         checkpoint = torch.load(model_path)
 
+    print("Loaded model from global step: {}".format(checkpoint[
+                                                         'global_step']))
     model_args = checkpoint['model_args']
 
     # TODO: This. SUUUUUUUUUUUUUUCKS.
