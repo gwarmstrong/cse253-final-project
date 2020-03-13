@@ -152,8 +152,8 @@ def eval_test(config_path, model_path, show_image=False):
         g_loss = model.Gcriterion(X_fake, X_color)
 
         # print(X_fake.shape)
-        X_fake_not_norm = test_dataset.invert_transforms(X_fake)
-        X_color_not_norm = test_dataset.invert_transforms(X_color)
+        X_fake_not_norm = test_dataset.invert_transforms(X_fake.cpu()).cuda()
+        X_color_not_norm = test_dataset.invert_transforms(X_color.cpu()).cuda()
 
         psnr_val = psnr(X_fake_not_norm, X_color_not_norm, 1.0, use_gpu)
 
@@ -270,8 +270,8 @@ def show_results(config_path, model_path, image_path=None):
     X_fake, disc_fake = model.forward(X_gray, train='none', skip_generator=False)
 
 
-    X_fake_not_norm = test_dataset.invert_transforms(X_fake)
-    X_color_not_norm = test_dataset.invert_transforms(X_color)
+    X_fake_not_norm = test_dataset.invert_transforms(X_fake.cpu())
+    X_color_not_norm = test_dataset.invert_transforms(X_color.cpu())
 
     fake_img = tensor_to_pil(X_fake_not_norm, 0)
     real_img = tensor_to_pil(X_color_not_norm, 0)
